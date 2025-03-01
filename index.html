@@ -78,79 +78,32 @@
             <h2>U.S. Navy No-Decompression Limits</h2>
             <p class="info">Calculate maximum bottom time without decompression stops based on U.S. Navy dive tables.</p>
             
-            <form id="nodeco-form">
-                <div class="form-group">
-                    <label>Dive Type:</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="dive-type" value="single" checked>
-                            Single Dive
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="dive-type" value="repetitive">
-                            Repetitive Dive
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="nodeco-depth">Depth (ft):</label>
-                    <input type="number" id="nodeco-depth" placeholder="Enter depth in feet" step="any">
-                </div>
-                
-                <div id="single-dive-fields">
-                    <div class="form-group">
-                        <label for="bottom-time">Bottom Time (min, optional):</label>
-                        <input type="number" id="bottom-time" placeholder="Enter planned bottom time" step="any">
-                        <small class="input-help">Leave blank to just calculate the no-decompression limit</small>
-                    </div>
-                </div>
-                
-                <div id="repetitive-dive-fields" style="display: none;">
-                    <div class="form-group">
-                        <label for="pressure-group">Previous Pressure Group:</label>
-                        <select id="pressure-group">
-                            <option value="">Select group</option>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                            <option value="F">F</option>
-                            <option value="G">G</option>
-                            <option value="H">H</option>
-                            <option value="I">I</option>
-                            <option value="J">J</option>
-                            <option value="K">K</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="surface-interval">Surface Interval (h:mm):</label>
-                        <input type="text" id="surface-interval" placeholder="e.g., 1:30 for 1 hour 30 min">
-                        <small class="input-help">Format: hours:minutes (e.g., 1:30)</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="actual-bottom-time">Planned Bottom Time (min, optional):</label>
-                        <input type="number" id="actual-bottom-time" placeholder="Enter planned bottom time" step="any">
-                        <small class="input-help">Leave blank to just calculate residual nitrogen time</small>
-                    </div>
-                </div>
-                
-                <button type="submit" class="calculate-btn">Calculate</button>
-            </form>
+            <div class="interactive-instructions">
+                <h3>Interactive Dive Tables</h3>
+                <p>Click on elements in the tables below to plan your dive:</p>
+                <ol>
+                    <li>Click on a <strong>depth row</strong> in Table 1</li>
+                    <li>Click on a <strong>bottom time</strong> to see your pressure group</li>
+                    <li>For repetitive dives, click on your <strong>pressure group row</strong> in Table 2</li>
+                    <li>Click on a <strong>surface interval</strong> to see your new pressure group</li>
+                    <li>Your residual nitrogen time and adjusted limits will be highlighted in Table 3</li>
+                </ol>
+            </div>
             
-            <div id="nodeco-results" class="results-container">
-                <h3>Results:</h3>
+            <div id="calculation-results" class="results-container">
+                <h3>Calculation Results:</h3>
+                <div class="result-item">
+                    <span class="result-label">Selected Depth:</span>
+                    <span id="selected-depth-result" class="result-value">-- ft</span>
+                </div>
                 <div class="result-item">
                     <span class="result-label">No-Decompression Limit:</span>
-                    <span id="nodeco-result" class="result-value">0 minutes</span>
+                    <span id="nodeco-result" class="result-value">-- minutes</span>
                 </div>
                 
                 <div class="result-item">
                     <span class="result-label">Pressure Group:</span>
-                    <span id="pressure-group-result" class="result-value">N/A</span>
+                    <span id="pressure-group-result" class="result-value">--</span>
                 </div>
                 
                 <div id="repetitive-dive-section" style="display: none;">
@@ -158,26 +111,116 @@
                     
                     <div class="result-item">
                         <span class="result-label">New Pressure Group After Surface Interval:</span>
-                        <span id="new-group-result" class="result-value">N/A</span>
+                        <span id="new-group-result" class="result-value">--</span>
                     </div>
                     
                     <div class="result-item">
                         <span class="result-label">Residual Nitrogen Time:</span>
-                        <span id="rnt-result" class="result-value">0 minutes</span>
+                        <span id="rnt-result" class="result-value">-- minutes</span>
                     </div>
                     
                     <div class="result-item">
                         <span class="result-label">Adjusted No-Decompression Limit:</span>
-                        <span id="andl-result" class="result-value">0 minutes</span>
+                        <span id="andl-result" class="result-value">-- minutes</span>
                     </div>
                     
                     <div class="result-item">
                         <span class="result-label">Final Pressure Group:</span>
-                        <span id="final-group-result" class="result-value">N/A</span>
+                        <span id="final-group-result" class="result-value">--</span>
                     </div>
                 </div>
                 
                 <div id="nodeco-warning" class="warning"></div>
+            </div>
+                
+                <h3>Table 1: No-Decompression Limits and Repetitive Group Designation</h3>
+                <div class="table-container">
+                    <table id="table1" class="dive-table">
+                        <thead>
+                            <tr>
+                                <th>Depth (ft)</th>
+                                <th>No-Deco Limit (min)</th>
+                                <th colspan="11">Pressure Group Designation</th>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <th></th>
+                                <th>A</th>
+                                <th>B</th>
+                                <th>C</th>
+                                <th>D</th>
+                                <th>E</th>
+                                <th>F</th>
+                                <th>G</th>
+                                <th>H</th>
+                                <th>I</th>
+                                <th>J</th>
+                                <th>K</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <h3>Table 2: Surface Interval Credit Table</h3>
+                <div class="table-container">
+                    <table id="table2" class="dive-table">
+                        <thead>
+                            <tr>
+                                <th>Group at Start of Surface Interval</th>
+                                <th colspan="11">Group at End of Surface Interval</th>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <th>A</th>
+                                <th>B</th>
+                                <th>C</th>
+                                <th>D</th>
+                                <th>E</th>
+                                <th>F</th>
+                                <th>G</th>
+                                <th>H</th>
+                                <th>I</th>
+                                <th>J</th>
+                                <th>K</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <h3>Table 3: Residual Nitrogen Times (Minutes)</h3>
+                <div class="table-container">
+                    <table id="table3" class="dive-table">
+                        <thead>
+                            <tr>
+                                <th>Depth (ft)</th>
+                                <th colspan="11">Pressure Group Designation</th>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <th>A</th>
+                                <th>B</th>
+                                <th>C</th>
+                                <th>D</th>
+                                <th>E</th>
+                                <th>F</th>
+                                <th>G</th>
+                                <th>H</th>
+                                <th>I</th>
+                                <th>J</th>
+                                <th>K</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- This will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
             
             <div class="info-box">

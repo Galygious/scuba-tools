@@ -98,21 +98,110 @@ const navyTable1 = {
     130: [5, {5: 'D'}]
 };
 
-// Table 2: Surface Interval Credit Table (simplified version)
+// Table 2: Surface Interval Credit Table (corrected version)
 // This maps from current group to new group based on surface interval
+// Format: current group -> {new group: [min time, max time]}
 const navyTable2 = {
-    // Format: current group -> {min surface interval: new group}
-    'A': {'0:10': 'A'},
-    'B': {'0:10': 'A', '2:39': 'B'},
-    'C': {'0:10': 'A', '1:39': 'B', '4:49': 'C'},
-    'D': {'0:10': 'A', '1:09': 'B', '2:38': 'C', '5:48': 'D'},
-    'E': {'0:10': 'A', '0:54': 'B', '1:57': 'C', '3:24': 'D', '6:34': 'E'},
-    'F': {'0:10': 'A', '0:45': 'B', '1:29': 'C', '2:28': 'D', '3:57': 'E', '7:05': 'F'},
-    'G': {'0:10': 'A', '0:40': 'B', '1:15': 'C', '1:59': 'D', '2:58': 'E', '4:25': 'F', '7:35': 'G'},
-    'H': {'0:10': 'A', '0:36': 'B', '1:06': 'C', '1:41': 'D', '2:23': 'E', '3:20': 'F', '4:49': 'G', '7:59': 'H'},
-    'I': {'0:10': 'A', '0:33': 'B', '0:59': 'C', '1:29': 'D', '2:02': 'E', '2:44': 'F', '3:43': 'G', '5:12': 'H', '8:21': 'I'},
-    'J': {'0:10': 'A', '0:31': 'B', '0:54': 'C', '1:19': 'D', '1:47': 'E', '2:20': 'F', '3:04': 'G', '4:02': 'H', '5:40': 'I', '8:50': 'J'},
-    'K': {'0:10': 'A', '0:28': 'B', '0:49': 'C', '1:11': 'D', '1:35': 'E', '2:03': 'F', '2:38': 'G', '3:21': 'H', '4:19': 'I', '5:48': 'J', '8:58': 'K'}
+    // For each starting group, we define the minimum and maximum surface interval time to reach each new group
+    'K': {
+        'K': ['0:10', '0:28'],  // Any surface interval less than 29 minutes means you remain in K
+        'J': ['0:29', '0:49'],  // Minimum surface interval to reach J is 29 minutes
+        'I': ['0:50', '1:11'],  // Minimum surface interval to reach I is 50 minutes
+        'H': ['1:12', '1:35'],  // Minimum surface interval to reach H is 1 hour 12 minutes
+        'G': ['1:36', '2:03'],  // Minimum surface interval to reach G is 1 hour 36 minutes
+        'F': ['2:04', '2:38'],  // Minimum surface interval to reach F is 2 hours 4 minutes
+        'E': ['2:39', '3:21'],  // Minimum surface interval to reach E is 2 hours 39 minutes
+        'D': ['3:22', '4:19'],  // Minimum surface interval to reach D is 3 hours 22 minutes
+        'C': ['4:20', '5:48'],  // Minimum surface interval to reach C is 4 hours 20 minutes
+        'B': ['5:49', '8:58'],  // Minimum surface interval to reach B is 5 hours 49 minutes
+        'A': ['8:59', '11:59'], // Minimum surface interval to reach A is 8 hours 59 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'J': {
+        'J': ['0:10', '0:31'],  // Any surface interval less than 32 minutes means you remain in J
+        'I': ['0:32', '0:54'],  // Minimum surface interval to reach I is 32 minutes
+        'H': ['0:55', '1:19'],  // Minimum surface interval to reach H is 55 minutes
+        'G': ['1:20', '1:47'],  // Minimum surface interval to reach G is 1 hour 20 minutes
+        'F': ['1:48', '2:20'],  // Minimum surface interval to reach F is 1 hour 48 minutes
+        'E': ['2:21', '3:04'],  // Minimum surface interval to reach E is 2 hours 21 minutes
+        'D': ['3:05', '4:02'],  // Minimum surface interval to reach D is 3 hours 5 minutes
+        'C': ['4:03', '5:40'],  // Minimum surface interval to reach C is 4 hours 3 minutes
+        'B': ['5:41', '8:50'],  // Minimum surface interval to reach B is 5 hours 41 minutes
+        'A': ['8:51', '11:59'], // Minimum surface interval to reach A is 8 hours 51 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'I': {
+        'I': ['0:10', '0:33'],  // Any surface interval less than 34 minutes means you remain in I
+        'H': ['0:34', '0:59'],  // Minimum surface interval to reach H is 34 minutes
+        'G': ['1:00', '1:29'],  // Minimum surface interval to reach G is 1 hour
+        'F': ['1:30', '2:02'],  // Minimum surface interval to reach F is 1 hour 30 minutes
+        'E': ['2:03', '2:44'],  // Minimum surface interval to reach E is 2 hours 3 minutes
+        'D': ['2:45', '3:43'],  // Minimum surface interval to reach D is 2 hours 45 minutes
+        'C': ['3:44', '5:12'],  // Minimum surface interval to reach C is 3 hours 44 minutes
+        'B': ['5:13', '8:21'],  // Minimum surface interval to reach B is 5 hours 13 minutes
+        'A': ['8:22', '11:59'], // Minimum surface interval to reach A is 8 hours 22 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'H': {
+        'H': ['0:10', '0:36'],  // Any surface interval less than 37 minutes means you remain in H
+        'G': ['0:37', '1:06'],  // Minimum surface interval to reach G is 37 minutes
+        'F': ['1:07', '1:41'],  // Minimum surface interval to reach F is 1 hour 7 minutes
+        'E': ['1:42', '2:23'],  // Minimum surface interval to reach E is 1 hour 42 minutes
+        'D': ['2:24', '3:20'],  // Minimum surface interval to reach D is 2 hours 24 minutes
+        'C': ['3:21', '4:49'],  // Minimum surface interval to reach C is 3 hours 21 minutes
+        'B': ['4:50', '7:59'],  // Minimum surface interval to reach B is 4 hours 50 minutes
+        'A': ['8:00', '11:59'], // Minimum surface interval to reach A is 8 hours
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'G': {
+        'G': ['0:10', '0:40'],  // Any surface interval less than 41 minutes means you remain in G
+        'F': ['0:41', '1:15'],  // Minimum surface interval to reach F is 41 minutes
+        'E': ['1:16', '1:59'],  // Minimum surface interval to reach E is 1 hour 16 minutes
+        'D': ['2:00', '2:58'],  // Minimum surface interval to reach D is 2 hours
+        'C': ['2:59', '4:25'],  // Minimum surface interval to reach C is 2 hours 59 minutes
+        'B': ['4:26', '7:35'],  // Minimum surface interval to reach B is 4 hours 26 minutes
+        'A': ['7:36', '11:59'], // Minimum surface interval to reach A is 7 hours 36 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'F': {
+        'F': ['0:10', '0:45'],  // Any surface interval less than 46 minutes means you remain in F
+        'E': ['0:46', '1:29'],  // Minimum surface interval to reach E is 46 minutes
+        'D': ['1:30', '2:28'],  // Minimum surface interval to reach D is 1 hour 30 minutes
+        'C': ['2:29', '3:57'],  // Minimum surface interval to reach C is 2 hours 29 minutes
+        'B': ['3:58', '7:05'],  // Minimum surface interval to reach B is 3 hours 58 minutes
+        'A': ['7:06', '11:59'], // Minimum surface interval to reach A is 7 hours 6 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'E': {
+        'E': ['0:10', '0:54'],  // Any surface interval less than 55 minutes means you remain in E
+        'D': ['0:55', '1:57'],  // Minimum surface interval to reach D is 55 minutes
+        'C': ['1:58', '3:24'],  // Minimum surface interval to reach C is 1 hour 58 minutes
+        'B': ['3:25', '6:34'],  // Minimum surface interval to reach B is 3 hours 25 minutes
+        'A': ['6:35', '11:59'], // Minimum surface interval to reach A is 6 hours 35 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'D': {
+        'D': ['0:10', '1:09'],  // Any surface interval less than 1 hour 10 minutes means you remain in D
+        'C': ['1:10', '2:38'],  // Minimum surface interval to reach C is 1 hour 10 minutes
+        'B': ['2:39', '5:48'],  // Minimum surface interval to reach B is 2 hours 39 minutes
+        'A': ['5:49', '11:59'], // Minimum surface interval to reach A is 5 hours 49 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'C': {
+        'C': ['0:10', '1:39'],  // Any surface interval less than 1 hour 40 minutes means you remain in C
+        'B': ['1:40', '4:49'],  // Minimum surface interval to reach B is 1 hour 40 minutes
+        'A': ['4:50', '11:59'], // Minimum surface interval to reach A is 4 hours 50 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'B': {
+        'B': ['0:10', '3:20'],  // Any surface interval less than 3 hours 21 minutes means you remain in B
+        'A': ['3:21', '11:59'], // Minimum surface interval to reach A is 3 hours 21 minutes
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    },
+    'A': {
+        'A': ['0:10', '11:59'], // Any surface interval less than 12 hours means you remain in A
+        'None': ['12:00', '--'] // After 12 hours, no longer a repetitive dive
+    }
 };
 
 // Table 3: Residual Nitrogen Times (minutes)
@@ -272,22 +361,15 @@ function getNewPressureGroup(currentGroup, surfaceInterval) {
     
     // Find the new group based on surface interval
     let newGroup = null;
-    const intervals = Object.keys(navyTable2[currentGroup]).sort((a, b) => 
-        parseTimeToMinutes(a) - parseTimeToMinutes(b));
     
-    for (let i = 0; i < intervals.length; i++) {
-        const minInterval = parseTimeToMinutes(intervals[i]);
+    // Check each possible new group for the current group
+    for (const [group, [minTime, maxTime]] of Object.entries(navyTable2[currentGroup])) {
+        const minMinutes = parseTimeToMinutes(minTime);
+        const maxMinutes = maxTime === '--' ? Infinity : parseTimeToMinutes(maxTime);
         
-        if (surfaceIntervalMinutes >= minInterval) {
-            newGroup = navyTable2[currentGroup][intervals[i]];
-            
-            // Check if we need to update to a lower group based on longer surface interval
-            if (i < intervals.length - 1) {
-                const nextInterval = parseTimeToMinutes(intervals[i + 1]);
-                if (surfaceIntervalMinutes >= nextInterval) {
-                    continue; // Check the next interval
-                }
-            }
+        // If the surface interval is within this range, we found our new group
+        if (surfaceIntervalMinutes >= minMinutes && surfaceIntervalMinutes < maxMinutes) {
+            newGroup = group === 'None' ? null : group;
             break;
         }
     }
@@ -337,8 +419,17 @@ function getFinalPressureGroup(depth, actualBottomTime, residualNitrogenTime) {
     return getSingleDiveInfo(tableDepth, totalBottomTime).pressureGroup;
 }
 
-// Event listeners for form submissions
+// Event listeners for form submissions and UI interactions
 document.addEventListener('DOMContentLoaded', function() {
+    // Populate dive tables
+    populateDiveTables();
+    
+    // Setup interactive functionality
+    setupInteractiveTables();
+    
+    // Show calculation results container by default
+    document.getElementById('calculation-results').style.display = 'block';
+    
     // Dalton's Triangle Calculator
     const daltonsForm = document.getElementById('daltons-form');
     if (daltonsForm) {
@@ -412,105 +503,848 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-// No-Decompression Limit Calculator
-    const noDecoForm = document.getElementById('nodeco-form');
-    if (noDecoForm) {
-        noDecoForm.addEventListener('submit', function(e) {
+    // No-Decompression Limit Calculator - Single Dive
+    const calculateBottomTimeBtn = document.getElementById('calculate-bottom-time');
+    if (calculateBottomTimeBtn) {
+        calculateBottomTimeBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
-            const diveType = document.querySelector('input[name="dive-type"]:checked').value;
-            const depth = parseFloat(document.getElementById('nodeco-depth').value);
+            const depth = parseFloat(document.getElementById('table-depth').value);
+            const bottomTime = document.getElementById('bottom-time').value !== '' 
+                ? parseFloat(document.getElementById('bottom-time').value) 
+                : 0;
             
             if (isNaN(depth)) {
                 alert('Please enter a valid depth.');
                 return;
             }
             
-            // Clear previous results
-            document.getElementById('nodeco-results').style.display = 'none';
+            // Calculate single dive info
+            const result = getSingleDiveInfo(depth, bottomTime);
+            
+            // Update results display
+            document.getElementById('selected-depth-result').textContent = findClosestDepth(depth) + ' ft';
+            document.getElementById('nodeco-result').textContent = result.noDecoLimit + ' minutes';
+            document.getElementById('pressure-group-result').textContent = bottomTime > 0 ? result.pressureGroup : '--';
+            
+            // Show warning if applicable
+            if (result.isExceeded) {
+                document.getElementById('nodeco-warning').textContent = result.message;
+                document.getElementById('nodeco-warning').style.display = 'block';
+            } else if (result.noDecoLimit <= 10) {
+                document.getElementById('nodeco-warning').textContent = 'WARNING: Very short no-decompression limit. Consider a shallower depth.';
+                document.getElementById('nodeco-warning').style.display = 'block';
+            } else {
+                document.getElementById('nodeco-warning').style.display = 'none';
+            }
+            
+            // Hide repetitive dive section
             document.getElementById('repetitive-dive-section').style.display = 'none';
             
-            if (diveType === 'single') {
-                // Single dive calculation
-                const bottomTime = document.getElementById('bottom-time').value !== '' 
-                    ? parseFloat(document.getElementById('bottom-time').value) 
-                    : 0;
-                
-                const result = getSingleDiveInfo(depth, bottomTime);
-                
-                if (result.isExceeded) {
-                    document.getElementById('nodeco-warning').textContent = result.message;
-                    document.getElementById('nodeco-warning').style.display = 'block';
-                    document.getElementById('pressure-group-result').textContent = 'N/A';
-                } else {
-                    document.getElementById('nodeco-result').textContent = result.noDecoLimit + ' minutes';
-                    document.getElementById('pressure-group-result').textContent = bottomTime > 0 ? result.pressureGroup : 'N/A';
-                    
-                    if (result.noDecoLimit <= 10) {
-                        document.getElementById('nodeco-warning').textContent = 'WARNING: Very short no-decompression limit. Consider a shallower depth.';
-                        document.getElementById('nodeco-warning').style.display = 'block';
-                    } else {
-                        document.getElementById('nodeco-warning').style.display = 'none';
-                    }
-                }
-                
-                document.getElementById('nodeco-results').style.display = 'block';
+            // Show results container
+            document.getElementById('calculation-results').style.display = 'block';
+            
+            // Highlight the depth in the tables
+            highlightDepthInTables(depth);
+        });
+    }
+    
+    // No-Decompression Limit Calculator - Repetitive Dive
+    const calculateRepetitiveBtn = document.getElementById('calculate-repetitive');
+    if (calculateRepetitiveBtn) {
+        calculateRepetitiveBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const depth = parseFloat(document.getElementById('table-depth').value);
+            const pressureGroup = document.getElementById('pressure-group').value;
+            const surfaceInterval = document.getElementById('surface-interval').value;
+            
+            if (isNaN(depth)) {
+                alert('Please enter a valid depth.');
+                return;
+            }
+            
+            if (!pressureGroup || !surfaceInterval) {
+                alert('Please enter pressure group and surface interval for repetitive dive.');
+                return;
+            }
+            
+            // Calculate new pressure group after surface interval
+            const newGroup = getNewPressureGroup(pressureGroup, surfaceInterval);
+            
+            if (!newGroup) {
+                document.getElementById('nodeco-warning').textContent = 'Invalid pressure group or surface interval.';
+                document.getElementById('nodeco-warning').style.display = 'block';
+                return;
+            }
+            
+            // Get residual nitrogen time and adjusted NDL
+            const repetitiveInfo = getRepetitiveDiveInfo(newGroup, depth);
+            
+            // Update results display
+            document.getElementById('selected-depth-result').textContent = findClosestDepth(depth) + ' ft';
+            document.getElementById('new-group-result').textContent = newGroup;
+            
+            if (repetitiveInfo.isExceeded) {
+                document.getElementById('rnt-result').textContent = 'N/A';
+                document.getElementById('andl-result').textContent = 'N/A';
+                document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+                document.getElementById('nodeco-warning').style.display = 'block';
             } else {
-                // Repetitive dive calculation
-                const pressureGroup = document.getElementById('pressure-group').value;
-                const surfaceInterval = document.getElementById('surface-interval').value;
+                document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
+                document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
+                document.getElementById('nodeco-warning').style.display = 'none';
                 
-                if (!pressureGroup || !surfaceInterval) {
-                    alert('Please enter pressure group and surface interval for repetitive dive.');
-                    return;
-                }
-                
-                // Calculate new pressure group after surface interval
-                const newGroup = getNewPressureGroup(pressureGroup, surfaceInterval);
-                
-                if (!newGroup) {
-                    document.getElementById('nodeco-warning').textContent = 'Invalid pressure group or surface interval.';
-                    document.getElementById('nodeco-warning').style.display = 'block';
-                    return;
-                }
-                
-                // Get residual nitrogen time and adjusted NDL
-                const repetitiveInfo = getRepetitiveDiveInfo(newGroup, depth);
-                
-                document.getElementById('new-group-result').textContent = newGroup;
-                
-                if (repetitiveInfo.isExceeded) {
-                    document.getElementById('rnt-result').textContent = 'N/A';
-                    document.getElementById('andl-result').textContent = 'N/A';
-                    document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
-                    document.getElementById('nodeco-warning').style.display = 'block';
+                // Calculate final pressure group if actual bottom time is provided
+                const actualBottomTime = document.getElementById('actual-bottom-time').value;
+                if (actualBottomTime && !isNaN(parseFloat(actualBottomTime))) {
+                    const finalGroup = getFinalPressureGroup(depth, actualBottomTime, repetitiveInfo.residualNitrogenTime);
+                    document.getElementById('final-group-result').textContent = finalGroup || 'Exceeds limits';
                 } else {
-                    document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
-                    document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
-                    document.getElementById('nodeco-warning').style.display = 'none';
-                    
-                    // Calculate final pressure group if actual bottom time is provided
-                    const actualBottomTime = document.getElementById('actual-bottom-time').value;
-                    if (actualBottomTime && !isNaN(parseFloat(actualBottomTime))) {
-                        const finalGroup = getFinalPressureGroup(depth, actualBottomTime, repetitiveInfo.residualNitrogenTime);
-                        document.getElementById('final-group-result').textContent = finalGroup || 'Exceeds limits';
-                    } else {
-                        document.getElementById('final-group-result').textContent = 'N/A';
+                    document.getElementById('final-group-result').textContent = '--';
+                }
+            }
+            
+            // Show repetitive dive section
+            document.getElementById('repetitive-dive-section').style.display = 'block';
+            
+            // Show results container
+            document.getElementById('calculation-results').style.display = 'block';
+            
+            // Highlight the depth in the tables
+            highlightDepthInTables(depth);
+        });
+    }
+    
+    // Toggle form fields based on dive type
+    const diveTypeRadios = document.querySelectorAll('input[name="dive-type"]');
+    diveTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('single-dive-fields').style.display = this.value === 'single' ? 'block' : 'none';
+            document.getElementById('repetitive-dive-fields').style.display = this.value === 'repetitive' ? 'block' : 'none';
+        });
+    });
+});
+
+// Function to populate the dive tables
+function populateDiveTables() {
+    populateTable1();
+    populateTable2();
+    populateTable3();
+}
+
+// Global state to track the current selection
+const diveState = {
+    selectedDepth: null,
+    selectedBottomTime: null,
+    selectedPressureGroup: null,
+    selectedSurfaceInterval: null,
+    newPressureGroup: null
+};
+
+// Setup interactive functionality for dive tables
+function setupInteractiveTables() {
+    // Add click event listeners to depth rows in Table 1
+    setupTable1Interactions();
+    
+    // Add click event listeners to cells in Table 2
+    setupTable2Interactions();
+    
+    // Add hover tooltips to Table 3 cells
+    setupTable3Tooltips();
+    
+    // Show calculation results container by default
+    document.getElementById('calculation-results').style.display = 'block';
+}
+
+// Setup Table 1 interactions
+function setupTable1Interactions() {
+    const table1 = document.getElementById('table1');
+    if (!table1) return;
+    
+    const tbody = table1.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    // Make depth rows clickable
+    rows.forEach(row => {
+        row.classList.add('clickable');
+        
+        // Add click event to depth cell
+        const depthCell = row.querySelector('td:first-child');
+        if (depthCell) {
+            depthCell.addEventListener('click', function() {
+                const depth = parseFloat(this.textContent);
+                selectDepth(depth);
+            });
+        }
+        
+        // Add click events to time cells
+        const timeCells = row.querySelectorAll('td:not(:first-child):not(:nth-child(2))');
+        timeCells.forEach((cell, index) => {
+            if (cell.textContent !== '-') {
+                cell.classList.add('clickable');
+                cell.addEventListener('click', function() {
+                    if (diveState.selectedDepth === null) {
+                        alert('Please select a depth first');
+                        return;
                     }
+                    
+                    const bottomTime = parseFloat(this.textContent);
+                    
+                    // Get the actual column index of this cell
+                    const cellIndex = Array.from(row.cells).indexOf(this);
+                    
+                    // Get the pressure group from the column header
+                    // The header is at the same column index
+                    const headerCell = table1.querySelector(`thead tr:nth-child(2) th:nth-child(${cellIndex + 1})`);
+                    const pressureGroup = headerCell.textContent;
+                    
+                    selectBottomTime(bottomTime, pressureGroup);
+                });
+            }
+        });
+    });
+}
+
+// Setup Table 2 interactions
+function setupTable2Interactions() {
+    const table2 = document.getElementById('table2');
+    if (!table2) return;
+    
+    const tbody = table2.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    // Make rows clickable
+    rows.forEach(row => {
+        // Add click event to pressure group row
+        const startGroupCell = row.querySelector('td:first-child');
+        if (startGroupCell) {
+            startGroupCell.classList.add('clickable');
+            startGroupCell.addEventListener('click', function() {
+                if (diveState.selectedPressureGroup === null) {
+                    alert('Please select a depth and bottom time first to determine your pressure group');
+                    return;
                 }
                 
-                document.getElementById('repetitive-dive-section').style.display = 'block';
-                document.getElementById('nodeco-results').style.display = 'block';
+                const startGroup = this.textContent;
+                if (startGroup !== diveState.selectedPressureGroup) {
+                    alert(`You selected pressure group ${startGroup}, but your current pressure group is ${diveState.selectedPressureGroup}`);
+                    return;
+                }
+                
+                selectStartGroup(startGroup);
+            });
+        }
+        
+        // Add click events to surface interval cells
+        const intervalCells = row.querySelectorAll('td:not(:first-child)');
+        intervalCells.forEach((cell, index) => {
+            if (cell.textContent !== '-') {
+                cell.classList.add('clickable');
+                cell.addEventListener('click', function() {
+                    if (diveState.selectedPressureGroup === null) {
+                        alert('Please select a depth and bottom time first');
+                        return;
+                    }
+                    
+                    // Get the column index of this cell
+                    const cellIndex = Array.from(row.cells).indexOf(this);
+                    
+                    // Get the header cell at the same column index
+                    const headerCell = table2.querySelector(`thead tr:nth-child(2) th:nth-child(${cellIndex + 1})`);
+                    const newGroup = headerCell.textContent;
+                    
+                    // If the new group is '-', it means 'None'
+                    const finalGroup = newGroup === '-' ? null : newGroup;
+                    
+                    // Get the surface interval from the cell's top value
+                    const surfaceInterval = cell.querySelector('.top-value').textContent;
+                    
+                    selectSurfaceInterval(surfaceInterval, finalGroup);
+                });
+            }
+        });
+    });
+}
+
+// Setup Table 3 tooltips
+function setupTable3Tooltips() {
+    const table3 = document.getElementById('table3');
+    if (!table3) return;
+    
+    const tbody = table3.querySelector('tbody');
+    const cells = tbody.querySelectorAll('.cell-double');
+    
+    cells.forEach(cell => {
+        // Add RNT and ANDL labels
+        const rntLabel = document.createElement('span');
+        rntLabel.classList.add('rnt-label');
+        rntLabel.textContent = 'RNT';
+        
+        const andlLabel = document.createElement('span');
+        andlLabel.classList.add('andl-label');
+        andlLabel.textContent = 'ANDL';
+        
+        cell.appendChild(rntLabel);
+        cell.appendChild(andlLabel);
+    });
+}
+
+// Select a depth in Table 1
+function selectDepth(depth) {
+    // Find the closest depth in the tables
+    const tableDepth = findClosestDepth(depth);
+    if (tableDepth === -1) {
+        alert('Depth exceeds maximum table depth of 130 feet.');
+        return;
+    }
+    
+    // Clear all highlights first
+    clearAllHighlights();
+    
+    // Update state
+    diveState.selectedDepth = tableDepth;
+    diveState.selectedBottomTime = null;
+    diveState.selectedPressureGroup = null;
+    diveState.selectedSurfaceInterval = null;
+    diveState.newPressureGroup = null;
+    
+    // Highlight the row in Table 1
+    highlightRowInTable1(tableDepth);
+    
+    // Update the results display
+    document.getElementById('selected-depth-result').textContent = tableDepth + ' ft';
+    const [maxNDL, timeGroups] = navyTable1[tableDepth];
+    document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
+    document.getElementById('pressure-group-result').textContent = '--';
+    
+    // Hide repetitive dive section
+    document.getElementById('repetitive-dive-section').style.display = 'none';
+}
+
+// Select a bottom time and pressure group in Table 1
+function selectBottomTime(bottomTime, pressureGroup) {
+    if (!diveState.selectedDepth) return;
+    
+    // Update state
+    diveState.selectedBottomTime = bottomTime;
+    diveState.selectedPressureGroup = pressureGroup;
+    
+    // Highlight the pressure group column in Table 1
+    highlightPressureGroupInTable1(pressureGroup);
+    
+    // Update the results display
+    document.getElementById('pressure-group-result').textContent = pressureGroup;
+    
+    // Hide repetitive dive section
+    document.getElementById('repetitive-dive-section').style.display = 'none';
+}
+
+// Select a starting pressure group in Table 2
+function selectStartGroup(startGroup) {
+    if (!diveState.selectedPressureGroup) return;
+    
+    // Clear previous highlights in Table 2 and 3
+    clearTable2Highlights();
+    clearTable3Highlights();
+    
+    // Highlight the row in Table 2
+    highlightRowInTable2(startGroup);
+}
+
+// Select a surface interval and new pressure group in Table 2
+function selectSurfaceInterval(surfaceInterval, newGroup) {
+    if (!diveState.selectedPressureGroup) return;
+    
+    // Clear previous highlights in Table 2 and 3
+    clearTable2Highlights();
+    clearTable3Highlights();
+    
+    // Update state
+    diveState.selectedSurfaceInterval = surfaceInterval;
+    diveState.newPressureGroup = newGroup;
+    
+    // Re-highlight the starting pressure group row in Table 2
+    highlightRowInTable2(diveState.selectedPressureGroup);
+    
+    // Highlight the new pressure group column in Table 2
+    highlightNewGroupInTable2(newGroup);
+    
+    // Highlight the corresponding row in Table 3
+    highlightRowInTable3(diveState.selectedDepth, newGroup);
+    
+    // Get residual nitrogen time and adjusted NDL
+    const repetitiveInfo = getRepetitiveDiveInfo(newGroup, diveState.selectedDepth);
+    
+    // Update the results display
+    document.getElementById('repetitive-dive-section').style.display = 'block';
+    document.getElementById('new-group-result').textContent = newGroup;
+    
+    if (repetitiveInfo.isExceeded) {
+        document.getElementById('rnt-result').textContent = 'N/A';
+        document.getElementById('andl-result').textContent = 'N/A';
+        document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+        document.getElementById('nodeco-warning').style.display = 'block';
+    } else {
+        document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
+        document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
+        document.getElementById('nodeco-warning').style.display = 'none';
+    }
+}
+
+// Clear all highlighted rows and cells
+function clearAllHighlights() {
+    clearTable1Highlights();
+    clearTable2Highlights();
+    clearTable3Highlights();
+}
+
+// Clear Table 1 highlights
+function clearTable1Highlights() {
+    document.querySelectorAll('#table1 tr.highlighted-row, #table1 td.highlighted-cell').forEach(el => {
+        el.classList.remove('highlighted-row');
+        el.classList.remove('highlighted-cell');
+    });
+}
+
+// Clear Table 2 highlights
+function clearTable2Highlights() {
+    document.querySelectorAll('#table2 tr.highlighted-row, #table2 td.highlighted-cell').forEach(el => {
+        el.classList.remove('highlighted-row');
+        el.classList.remove('highlighted-cell');
+    });
+}
+
+// Clear Table 3 highlights
+function clearTable3Highlights() {
+    document.querySelectorAll('#table3 tr.highlighted-row, #table3 td.highlighted-cell').forEach(el => {
+        el.classList.remove('highlighted-row');
+        el.classList.remove('highlighted-cell');
+    });
+}
+
+// Highlight the row in Table 1 for the given depth
+function highlightRowInTable1(depth) {
+    const table1 = document.getElementById('table1');
+    if (table1) {
+        const tbody = table1.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr');
+        
+        // Clear previous highlights first
+        clearTable1Highlights();
+        
+        rows.forEach(row => {
+            const depthCell = row.querySelector('td:first-child');
+            if (depthCell && parseFloat(depthCell.textContent) === depth) {
+                // Highlight the entire row
+                row.classList.add('highlighted-row');
+                
+                // Highlight all cells in the row
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    cell.classList.add('highlighted-cell');
+                });
+                
+                // Update the results display
+                document.getElementById('selected-depth-result').textContent = depth + ' ft';
+                const [maxNDL, timeGroups] = navyTable1[depth];
+                document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
+            }
+        });
+    }
+}
+
+// Highlight the pressure group column in Table 1
+function highlightPressureGroupInTable1(pressureGroup) {
+    const table1 = document.getElementById('table1');
+    if (table1) {
+        // Clear all highlights first
+        clearAllHighlights();
+        
+        // Re-highlight the depth row
+        if (diveState.selectedDepth) {
+            highlightRowInTable1(diveState.selectedDepth);
+        }
+        
+        const thead = table1.querySelector('thead');
+        const tbody = table1.querySelector('tbody');
+        
+        // Find the column index for the pressure group
+        let colIndex = -1;
+        const headerCells = thead.querySelectorAll('tr:nth-child(2) th');
+        
+        headerCells.forEach((cell, index) => {
+            if (cell.textContent === pressureGroup) {
+                colIndex = index;
+                // Highlight the header cell
+                cell.classList.add('highlighted-cell');
             }
         });
         
-        // Toggle form fields based on dive type
-        const diveTypeRadios = document.querySelectorAll('input[name="dive-type"]');
-        diveTypeRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                document.getElementById('single-dive-fields').style.display = this.value === 'single' ? 'block' : 'none';
-                document.getElementById('repetitive-dive-fields').style.display = this.value === 'repetitive' ? 'block' : 'none';
+        if (colIndex !== -1) {
+            // Highlight the entire column - the actual column index in the table
+            // is offset by 2 (depth and NDL columns)
+            const actualColIndex = colIndex; 
+            const rows = tbody.querySelectorAll('tr');
+            
+            rows.forEach(row => {
+                if (row.cells[actualColIndex]) {
+                    row.cells[actualColIndex].classList.add('highlighted-cell');
+                }
             });
+            
+            // Highlight the cells in the selected depth row
+            const depthRow = tbody.querySelector(`tr.highlighted-row`);
+            if (depthRow) {
+                const cell = depthRow.cells[actualColIndex];
+                if (cell) {
+                    // Update the pressure group result
+                    document.getElementById('pressure-group-result').textContent = pressureGroup;
+                    
+                    // Enable transition to Table 2 by highlighting the corresponding row
+                    highlightRowInTable2(pressureGroup);
+                }
+            }
+        }
+    }
+}
+
+// Highlight the row in Table 2 for the given pressure group
+function highlightRowInTable2(pressureGroup) {
+    const table2 = document.getElementById('table2');
+    if (table2) {
+        const tbody = table2.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr');
+        
+        // Clear previous highlights first
+        clearTable2Highlights();
+        
+        rows.forEach(row => {
+            const groupCell = row.querySelector('td:first-child');
+            if (groupCell && groupCell.textContent === pressureGroup) {
+                // Highlight the entire row
+                row.classList.add('highlighted-row');
+                
+                // Highlight all cells in the row
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    cell.classList.add('highlighted-cell');
+                });
+            }
         });
     }
-});
+}
+
+// Highlight the new pressure group column in Table 2
+function highlightNewGroupInTable2(newGroup) {
+    const table2 = document.getElementById('table2');
+    if (table2) {
+        const thead = table2.querySelector('thead');
+        const tbody = table2.querySelector('tbody');
+        
+        // If newGroup is null (None), use the last column
+        const displayGroup = newGroup === null ? '-' : newGroup;
+        
+        // Find the column index for the new pressure group
+        let colIndex = -1;
+        const headerCells = thead.querySelectorAll('tr:nth-child(2) th');
+        
+        headerCells.forEach((cell, index) => {
+            if (cell.textContent === displayGroup) {
+                colIndex = index;
+                // Highlight the header cell
+                cell.classList.add('highlighted-cell');
+            }
+        });
+        
+        if (colIndex !== -1) {
+            // Highlight the entire column
+            const actualColIndex = colIndex + 1; // +1 because of start group column
+            const rows = tbody.querySelectorAll('tr');
+            
+            rows.forEach(row => {
+                if (row.cells[actualColIndex]) {
+                    row.cells[actualColIndex].classList.add('highlighted-cell');
+                }
+            });
+            
+            // Highlight the cell in the selected pressure group row
+            const groupRow = tbody.querySelector(`tr.highlighted-row`);
+            if (groupRow) {
+                const cell = groupRow.cells[actualColIndex];
+                if (cell) {
+                    // Update the new group result
+                    document.getElementById('new-group-result').textContent = newGroup || 'None';
+                }
+            }
+        }
+    }
+        rows.forEach(row => {
+            const depthCell = row.querySelector('td:first-child');
+            if (depthCell && parseFloat(depthCell.textContent) === depth) {
+                // Highlight the entire row
+                row.classList.add('highlighted-row');
+                
+                // Highlight all cells in the row
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    cell.classList.add('highlighted-cell');
+                });
+                
+                // If pressure group is provided, highlight that column too
+                if (pressureGroup) {
+                    // Find the column index for the pressure group
+                    let colIndex = -1;
+                    const headerCells = thead.querySelectorAll('tr:nth-child(2) th');
+                    
+                    headerCells.forEach((cell, index) => {
+                        if (cell.textContent === pressureGroup) {
+                            colIndex = index;
+                            // Highlight the header cell
+                            cell.classList.add('highlighted-cell');
+                        }
+                    });
+                    
+                    if (colIndex !== -1) {
+                        // Highlight the entire column
+                        const actualColIndex = colIndex + 1; // +1 because of depth column
+                        rows.forEach(r => {
+                            if (r.cells[actualColIndex]) {
+                                r.cells[actualColIndex].classList.add('highlighted-cell');
+                            }
+                        });
+                        
+                        // Get residual nitrogen time and adjusted NDL
+                        const repetitiveInfo = getRepetitiveDiveInfo(pressureGroup, depth);
+                        
+                        // Update the results display
+                        document.getElementById('repetitive-dive-section').style.display = 'block';
+                        
+                        if (repetitiveInfo.isExceeded) {
+                            document.getElementById('rnt-result').textContent = 'N/A';
+                            document.getElementById('andl-result').textContent = 'N/A';
+                            document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+                            document.getElementById('nodeco-warning').style.display = 'block';
+                        } else {
+                            document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
+                            document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
+                            document.getElementById('nodeco-warning').style.display = 'none';
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Populate Table 1: No-Decompression Limits and Repetitive Group Designation
+function populateTable1() {
+    const table = document.getElementById('table1');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+    
+    // Get depths from navyTable1
+    const depths = Object.keys(navyTable1).map(Number).sort((a, b) => a - b);
+    
+    // Create rows for each depth
+    depths.forEach(depth => {
+        const [maxNDL, timeGroups] = navyTable1[depth];
+        const row = document.createElement('tr');
+        
+        // Add depth cell
+        const depthCell = document.createElement('td');
+        depthCell.textContent = depth;
+        row.appendChild(depthCell);
+        
+        // Add NDL cell
+        const ndlCell = document.createElement('td');
+        ndlCell.textContent = maxNDL;
+        row.appendChild(ndlCell);
+        
+        // Add cells for each pressure group
+        const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+        groups.forEach(group => {
+            const cell = document.createElement('td');
+            
+            // Find the time for this group
+            let time = null;
+            for (const [t, g] of Object.entries(timeGroups)) {
+                if (g === group) {
+                    time = t;
+                    break;
+                }
+            }
+            
+            if (time) {
+                cell.textContent = time;
+                cell.classList.add(`group-${group.toLowerCase()}`);
+            } else {
+                cell.textContent = '-';
+            }
+            
+            row.appendChild(cell);
+        });
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Populate Table 2: Surface Interval Credit Table
+function populateTable2() {
+    const table = document.getElementById('table2');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+    
+    // Update the table header to show groups from K to A
+    const thead = table.querySelector('thead');
+    const headerRow = thead.querySelector('tr:nth-child(2)');
+    if (headerRow) {
+        headerRow.innerHTML = '';
+        const groups = ['K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'None'];
+        
+        // Add empty cell for the corner
+        const cornerCell = document.createElement('th');
+        headerRow.appendChild(cornerCell);
+        
+        // Add header cells for each group
+        groups.forEach(group => {
+            const th = document.createElement('th');
+            th.textContent = group === 'None' ? '-' : group;
+            headerRow.appendChild(th);
+        });
+    }
+    
+    // Get groups from navyTable2 in reverse order (K to A)
+    const groups = Object.keys(navyTable2).sort().reverse();
+    
+    // Create rows for each starting group
+    groups.forEach(startGroup => {
+        const row = document.createElement('tr');
+        
+        // Add starting group cell
+        const startGroupCell = document.createElement('td');
+        startGroupCell.textContent = startGroup;
+        startGroupCell.classList.add(`group-${startGroup.toLowerCase()}`);
+        row.appendChild(startGroupCell);
+        
+        // Add cells for each ending group (K to A and None)
+        const endGroups = ['K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'None'];
+        endGroups.forEach(endGroup => {
+            const cell = document.createElement('td');
+            
+            // Check if this end group is available for this start group
+            if (navyTable2[startGroup] && navyTable2[startGroup][endGroup]) {
+                const [minTime, maxTime] = navyTable2[startGroup][endGroup];
+                
+                cell.classList.add('cell-double');
+                
+                // Create top value (min time)
+                const topSpan = document.createElement('span');
+                topSpan.classList.add('top-value');
+                topSpan.textContent = minTime;
+                topSpan.title = 'Minimum surface interval to reach this group';
+                
+                // Create bottom value (max time)
+                const bottomSpan = document.createElement('span');
+                bottomSpan.classList.add('bottom-value');
+                bottomSpan.textContent = maxTime;
+                bottomSpan.title = 'Maximum surface interval to remain in this group';
+                
+                cell.appendChild(topSpan);
+                cell.appendChild(bottomSpan);
+                
+                if (endGroup !== 'None') {
+                    cell.classList.add(`group-${endGroup.toLowerCase()}`);
+                }
+                
+                cell.classList.add('clickable');
+                
+                // Add click event to the cell
+                cell.addEventListener('click', function() {
+                    if (diveState.selectedPressureGroup !== startGroup) {
+                        alert(`You selected pressure group ${startGroup}, but your current pressure group is ${diveState.selectedPressureGroup || 'not set'}`);
+                        return;
+                    }
+                    
+                    // Use the minimum time as the selected surface interval
+                    selectSurfaceInterval(minTime, endGroup === 'None' ? null : endGroup);
+                });
+            } else {
+                cell.textContent = '-';
+            }
+            
+            row.appendChild(cell);
+        });
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Populate Table 3: Residual Nitrogen Times
+function populateTable3() {
+    const table = document.getElementById('table3');
+    if (!table) return;
+    
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+    
+    // Get depths from navyTable3
+    const depths = Object.keys(navyTable3).map(Number).sort((a, b) => a - b);
+    
+    // Create rows for each depth
+    depths.forEach(depth => {
+        const row = document.createElement('tr');
+        
+        // Add depth cell
+        const depthCell = document.createElement('td');
+        depthCell.textContent = depth;
+        row.appendChild(depthCell);
+        
+        // Add cells for each pressure group
+        const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+        groups.forEach(group => {
+            const cell = document.createElement('td');
+            
+            // Get RNT and ANDL for this depth and group
+            if (navyTable3[depth] && navyTable3[depth][group]) {
+                const [rnt, andl] = navyTable3[depth][group];
+                
+                if (rnt === 'N/L') {
+                    cell.textContent = 'N/L';
+                    cell.classList.add('cell-nl');
+                    cell.title = 'Not recommended';
+                } else if (andl === 0) {
+                    cell.textContent = '-';
+                    cell.classList.add('cell-unavailable');
+                    cell.title = 'Not available';
+                } else {
+                    cell.classList.add('cell-double');
+                    cell.classList.add(`group-${group.toLowerCase()}`);
+                    
+                    const topSpan = document.createElement('span');
+                    topSpan.classList.add('top-value');
+                    topSpan.textContent = rnt;
+                    topSpan.title = 'Residual Nitrogen Time (minutes)';
+                    
+                    const bottomSpan = document.createElement('span');
+                    bottomSpan.classList.add('bottom-value');
+                    bottomSpan.textContent = andl;
+                    bottomSpan.title = 'Adjusted No-Decompression Limit (minutes)';
+                    
+                    cell.appendChild(topSpan);
+                    cell.appendChild(bottomSpan);
+                }
+            } else {
+                cell.textContent = '-';
+            }
+            
+            row.appendChild(cell);
+        });
+        
+        tbody.appendChild(row);
+    });
+}
