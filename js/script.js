@@ -1890,7 +1890,7 @@ function populateTable1() {
                     } else if (narcosisRisk) {
                         // For depths beyond 100ft, add warning but keep clickable
                         cell.classList.add('narcosis-warning');
-                        cell.title = `Warning: Increased risk of nitrogen narcosis at 100ft and beyond`;
+                        cell.title = `Warning: Increased risk of nitrogen narcosis beyond 100ft`;
                     }
                 } else {
                     cell.textContent = '-';
@@ -2135,7 +2135,7 @@ function populateTable3() {
                 
                 // For depths with narcosis risk, show a warning but allow the user to proceed
                 if (narcosisRisk) {
-                    if (!confirm(`Warning: Depths at 100 feet and beyond have an increased risk of nitrogen narcosis. Do you want to proceed?`)) {
+                    if (!confirm(`Warning: Depths beyond 100 feet have an increased risk of nitrogen narcosis. Do you want to proceed?`)) {
                         return;
                     }
                 }
@@ -2235,7 +2235,7 @@ function populateTable3() {
                         cell.classList.add(`group-${group.toLowerCase()}`);
                         cell.classList.add('narcosis-warning');
                         cell.textContent = andl;
-                        cell.title = `Warning: Increased risk of nitrogen narcosis at 100ft and beyond. Adjusted No-Decompression Limit: ${andl} minutes.`;
+                        cell.title = `Warning: Increased risk of nitrogen narcosis beyond 100ft. Adjusted No-Decompression Limit: ${andl} minutes.`;
                     } else {
                         cell.classList.add(`group-${group.toLowerCase()}`);
                         cell.textContent = andl;
