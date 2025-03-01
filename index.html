@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scuba Diving Calculations</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>Scuba Diving Calculations</h1>
+        <p>Tools for calculating Dalton's Triangle and U.S. Navy No-Decompression Limits</p>
+    </header>
+
+    <main>
+        <section class="calculator-section">
+            <h2>Dalton's Triangle Calculator</h2>
+            <p class="info">Enter any 2 of the 3 values below to calculate the third value and related gas pressures.</p>
+            
+            <form id="daltons-form">
+                <div class="form-group">
+                    <label for="depth">Depth (ft):</label>
+                    <input type="number" id="depth" placeholder="Enter depth in feet" step="any">
+                </div>
+                
+                <div class="form-group">
+                    <label for="fo2">O₂ Percentage (%):</label>
+                    <input type="number" id="fo2" placeholder="Enter O₂ percentage" min="0" max="100" step="any">
+                </div>
+                
+                <div class="form-group">
+                    <label for="po2">Partial Pressure O₂ (ATA):</label>
+                    <input type="number" id="po2" placeholder="Enter pO₂ in ATA" step="0.01">
+                </div>
+                
+                <button type="submit" class="calculate-btn">Calculate</button>
+            </form>
+            
+            <div id="daltons-results" class="results-container">
+                <h3>Results:</h3>
+                <div class="result-item">
+                    <span class="result-label">Depth:</span>
+                    <span id="depth-result" class="result-value">0 ft</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">O₂ Percentage:</span>
+                    <span id="fo2-result" class="result-value">0%</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Ambient Pressure:</span>
+                    <span id="pressure-result" class="result-value">0 ATA</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Partial Pressure O₂:</span>
+                    <span id="po2-result" class="result-value">0 ATA</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Partial Pressure N₂:</span>
+                    <span id="pn2-result" class="result-value">0 ATA</span>
+                </div>
+                
+                <div id="po2-warning" class="warning"></div>
+                <div id="pn2-warning" class="warning"></div>
+            </div>
+            
+            <div class="info-box">
+                <h3>About Dalton's Law</h3>
+                <p>Dalton's Law states that the total pressure exerted by a mixture of gases equals the sum of the partial pressures of the individual gases.</p>
+                <p>In diving, this is crucial for calculating:</p>
+                <ul>
+                    <li>Oxygen toxicity risk (pO₂ > 1.4 ATA is considered the recreational limit)</li>
+                    <li>Nitrogen narcosis risk (pN₂ > 3.94 ATA can cause significant impairment)</li>
+                </ul>
+            </div>
+        </section>
+        
+        <section class="calculator-section">
+            <h2>U.S. Navy No-Decompression Limits</h2>
+            <p class="info">Calculate maximum bottom time without decompression stops based on U.S. Navy dive tables.</p>
+            
+            <form id="nodeco-form">
+                <div class="form-group">
+                    <label>Dive Type:</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="dive-type" value="single" checked>
+                            Single Dive
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="dive-type" value="repetitive">
+                            Repetitive Dive
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="nodeco-depth">Depth (ft):</label>
+                    <input type="number" id="nodeco-depth" placeholder="Enter depth in feet" step="any">
+                </div>
+                
+                <div id="single-dive-fields">
+                    <div class="form-group">
+                        <label for="bottom-time">Bottom Time (min, optional):</label>
+                        <input type="number" id="bottom-time" placeholder="Enter planned bottom time" step="any">
+                        <small class="input-help">Leave blank to just calculate the no-decompression limit</small>
+                    </div>
+                </div>
+                
+                <div id="repetitive-dive-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="pressure-group">Previous Pressure Group:</label>
+                        <select id="pressure-group">
+                            <option value="">Select group</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="G">G</option>
+                            <option value="H">H</option>
+                            <option value="I">I</option>
+                            <option value="J">J</option>
+                            <option value="K">K</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="surface-interval">Surface Interval (h:mm):</label>
+                        <input type="text" id="surface-interval" placeholder="e.g., 1:30 for 1 hour 30 min">
+                        <small class="input-help">Format: hours:minutes (e.g., 1:30)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="actual-bottom-time">Planned Bottom Time (min, optional):</label>
+                        <input type="number" id="actual-bottom-time" placeholder="Enter planned bottom time" step="any">
+                        <small class="input-help">Leave blank to just calculate residual nitrogen time</small>
+                    </div>
+                </div>
+                
+                <button type="submit" class="calculate-btn">Calculate</button>
+            </form>
+            
+            <div id="nodeco-results" class="results-container">
+                <h3>Results:</h3>
+                <div class="result-item">
+                    <span class="result-label">No-Decompression Limit:</span>
+                    <span id="nodeco-result" class="result-value">0 minutes</span>
+                </div>
+                
+                <div class="result-item">
+                    <span class="result-label">Pressure Group:</span>
+                    <span id="pressure-group-result" class="result-value">N/A</span>
+                </div>
+                
+                <div id="repetitive-dive-section" style="display: none;">
+                    <h4>Repetitive Dive Information:</h4>
+                    
+                    <div class="result-item">
+                        <span class="result-label">New Pressure Group After Surface Interval:</span>
+                        <span id="new-group-result" class="result-value">N/A</span>
+                    </div>
+                    
+                    <div class="result-item">
+                        <span class="result-label">Residual Nitrogen Time:</span>
+                        <span id="rnt-result" class="result-value">0 minutes</span>
+                    </div>
+                    
+                    <div class="result-item">
+                        <span class="result-label">Adjusted No-Decompression Limit:</span>
+                        <span id="andl-result" class="result-value">0 minutes</span>
+                    </div>
+                    
+                    <div class="result-item">
+                        <span class="result-label">Final Pressure Group:</span>
+                        <span id="final-group-result" class="result-value">N/A</span>
+                    </div>
+                </div>
+                
+                <div id="nodeco-warning" class="warning"></div>
+            </div>
+            
+            <div class="info-box">
+                <h3>About No-Decompression Limits</h3>
+                <p>No-decompression limits (NDLs) are the maximum amount of time you can stay at a given depth without requiring decompression stops during ascent.</p>
+                <p>These limits are based on the U.S. Navy dive tables and are designed to prevent decompression sickness.</p>
+                <p>For repetitive dives, you must account for residual nitrogen from previous dives by:</p>
+                <ol>
+                    <li>Determining your pressure group from the first dive</li>
+                    <li>Finding your new pressure group after surface interval</li>
+                    <li>Adding residual nitrogen time to your actual bottom time</li>
+                </ol>
+                <p>Always plan your dive conservatively and consider using a dive computer for real-time monitoring.</p>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>This calculator is for educational purposes only. Always receive proper training and use appropriate dive tables or computers for actual dive planning.</p>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
