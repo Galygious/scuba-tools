@@ -344,6 +344,98 @@ input[type="radio"] {
     font-weight: bold;
 }
 
+.dive-table td.target-highlighted {
+    background-color: #ff9999 !important;
+    font-weight: bold;
+    border: 2px solid #ff0000 !important;
+    position: relative;
+}
+
+.dive-table td.target-highlighted::after {
+    content: "Target";
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff0000;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+/* Nitrox Settings Styles */
+.nitrox-settings {
+    background-color: #e6f7ff;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: 1px solid #b3e0ff;
+}
+
+.nitrox-settings h3 {
+    margin-top: 0;
+    color: #0066cc;
+}
+
+.nitrox-settings .form-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.nitrox-settings input {
+    width: 80px;
+}
+
+.nitrox-info {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #b3e0ff;
+}
+
+.nitrox-info .result-item {
+    margin-bottom: 5px;
+}
+
+/* Adjusted depth row styles */
+.dive-table tr.adjusted-depth {
+    background-color: #e6fff2;
+}
+
+.dive-table tr.adjusted-depth td:first-child::after {
+    content: "EANx";
+    font-size: 0.7rem;
+    background-color: #00cc66;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.dive-table tr.beyond-mod {
+    opacity: 0.5;
+    position: relative;
+}
+
+.dive-table tr.beyond-mod::after {
+    content: "Exceeds MOD";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-weight: bold;
+    z-index: 10;
+}
+
 .dive-table tr.highlighted-row:hover {
     background-color: #ffff80 !important;
 }
@@ -417,15 +509,44 @@ input[type="radio"] {
     position: absolute;
     font-size: 0.7rem;
     color: var(--dark-color);
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 2px 4px;
-    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 3px 6px;
+    border-radius: 3px;
     z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-weight: bold;
 }
 
 .cell-double:hover .rnt-label,
 .cell-double:hover .andl-label {
     display: block;
+}
+
+/* Improve tooltip appearance */
+[title] {
+    position: relative;
+    cursor: help;
+}
+
+/* Enhance the native browser tooltip */
+[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: normal;
+    max-width: 300px;
+    z-index: 100;
+    pointer-events: none;
+    text-align: left;
+    line-height: 1.4;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 .cell-double .rnt-label {
@@ -447,4 +568,14 @@ input[type="radio"] {
 .cell-unavailable {
     background-color: #f8d7da;
     color: #721c24;
+}
+
+/* Narcosis warning styles */
+.narcosis-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.dive-table tr.narcosis-risk {
+    background-color: #fff3cd;
 }

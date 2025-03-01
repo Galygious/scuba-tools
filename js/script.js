@@ -418,6 +418,33 @@ function getFinalPressureGroup(depth, actualBottomTime, residualNitrogenTime) {
     // Get the pressure group based on the total bottom time
     return getSingleDiveInfo(tableDepth, totalBottomTime).pressureGroup;
 }
+// Nitrox (EANx) Calculations
+// Calculate Equivalent Air Depth (EAD)
+function calculateEAD(depth, o2Percentage) {
+    // Formula: EAD = (Depth + 10) × (Fraction of N2 / 0.79) − 10
+    const n2Fraction = (100 - o2Percentage) / 100;
+    return (depth + 10) * (n2Fraction / 0.79) - 10;
+}
+
+// Calculate actual depth from EAD
+function calculateActualDepthFromEAD(ead, o2Percentage) {
+    // Formula: D = (((EAD + 10) × 0.79) ÷ (1 - (O2% ÷ 100))) - 10
+    return (((ead + 10) * 0.79) / (1 - (o2Percentage / 100))) - 10;
+}
+
+// Calculate Maximum Operating Depth (MOD) based on pO2 limit
+function calculateMOD(o2Percentage, pO2Limit = 1.4) {
+    // Calculate MOD based on oxygen toxicity limit
+    const o2Fraction = o2Percentage / 100;
+    const pressure = pO2Limit / o2Fraction;
+    return ataToFT(pressure);
+}
+
+// Check if a depth is at risk for nitrogen narcosis
+function isNarcosisRisk(depth) {
+    // Nitrogen narcosis risk increases significantly at 100 feet and beyond
+    return depth >= 100;
+}
 
 // Event listeners for form submissions and UI interactions
 document.addEventListener('DOMContentLoaded', function() {
@@ -427,7 +454,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup interactive functionality
     setupInteractiveTables();
     
+    // Setup Nitrox functionality
+    setupNitroxCalculations();
+    
     // Show calculation results container by default
+    document.getElementById('calculation-results').style.display = 'block';
     document.getElementById('calculation-results').style.display = 'block';
     
     // Dalton's Triangle Calculator
@@ -487,10 +518,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     pO2Warning.style.display = 'none';
                 }
-                
                 const pN2Warning = document.getElementById('pn2-warning');
                 if (results.pN2 > 3.94) {
-                    pN2Warning.textContent = 'WARNING: pN₂ exceeds 3.94 ATA (risk of nitrogen narcosis)';
+                    pN2Warning.textContent = 'WARNING: pN₂ exceeds 3.94 ATA (risk of nitrogen narcosis). Nitrogen narcosis affects divers breathing compressed air below 100 feet. To avoid it, use a higher oxygen mixture.';
                     pN2Warning.style.display = 'block';
                 } else {
                     pN2Warning.style.display = 'none';
@@ -639,8 +669,102 @@ const diveState = {
     selectedBottomTime: null,
     selectedPressureGroup: null,
     selectedSurfaceInterval: null,
-    newPressureGroup: null
+    newPressureGroup: null,
+    targetDepth: null,
+    targetPressureGroup: null,
+    nitroxO2: 21,
+    isNitroxMode: false,
+    mod: null
 };
+
+// Setup Nitrox calculations
+function setupNitroxCalculations() {
+    const nitroxO2Input = document.getElementById('nitrox-o2');
+    const applyNitroxBtn = document.getElementById('apply-nitrox');
+    const modResult = document.getElementById('mod-result');
+    const tableMode = document.getElementById('table-mode');
+    
+    if (!nitroxO2Input || !applyNitroxBtn) return;
+    
+    // Initialize with default values
+    diveState.nitroxO2 = parseInt(nitroxO2Input.value) || 21;
+    diveState.isNitroxMode = diveState.nitroxO2 > 21;
+    diveState.mod = calculateMOD(diveState.nitroxO2);
+    
+    // Update MOD display
+    if (modResult) {
+        if (!diveState.isNitroxMode) {
+            modResult.textContent = 'No limit (Air)';
+        } else {
+            modResult.textContent = `${Math.floor(diveState.mod)} ft (pO₂ 1.4)`;
+        }
+    }
+    
+    // Update table mode display
+    if (tableMode) {
+        tableMode.textContent = diveState.isNitroxMode ?
+            `EANx ${diveState.nitroxO2}%` :
+            'Air (21% O₂)';
+    }
+    
+    // Apply Nitrox button click handler
+    applyNitroxBtn.addEventListener('click', function() {
+        const newO2 = parseInt(nitroxO2Input.value);
+        
+        // Validate O2 percentage
+        if (isNaN(newO2) || newO2 < 21 || newO2 > 100) {
+            alert('Please enter a valid O₂ percentage between 21% and 100%');
+            nitroxO2Input.value = diveState.nitroxO2;
+            return;
+        }
+        
+        // Update state
+        diveState.nitroxO2 = newO2;
+        diveState.isNitroxMode = newO2 > 21;
+        diveState.mod = calculateMOD(newO2);
+        
+        // Update displays
+        if (modResult) {
+            if (!diveState.isNitroxMode) {
+                modResult.textContent = 'No limit (Air)';
+            } else {
+                modResult.textContent = `${Math.floor(diveState.mod)} ft (pO₂ 1.4)`;
+            }
+        }
+        
+        if (tableMode) {
+            tableMode.textContent = diveState.isNitroxMode ?
+                `EANx ${diveState.nitroxO2}%` :
+                'Air (21% O₂)';
+        }
+        
+        // Repopulate Tables with Nitrox adjustments
+        populateTable1();
+        populateTable3();
+        
+        // Re-setup interactive functionality for both tables
+        setupTable1Interactions();
+        setupTable3Interactions();
+        
+        // Clear any highlights
+        clearAllHighlights();
+        
+        // Reset selected values
+        diveState.selectedDepth = null;
+        diveState.selectedBottomTime = null;
+        diveState.selectedPressureGroup = null;
+        diveState.selectedSurfaceInterval = null;
+        diveState.newPressureGroup = null;
+        diveState.targetDepth = null;
+        diveState.targetPressureGroup = null;
+        
+        // Update results display
+        document.getElementById('selected-depth-result').textContent = '-- ft';
+        document.getElementById('nodeco-result').textContent = '-- minutes';
+        document.getElementById('pressure-group-result').textContent = '--';
+        document.getElementById('repetitive-dive-section').style.display = 'none';
+    });
+}
 
 // Setup interactive functionality for dive tables
 function setupInteractiveTables() {
@@ -674,7 +798,16 @@ function setupTable1Interactions() {
         if (depthCell) {
             depthCell.addEventListener('click', function() {
                 const depth = parseFloat(this.textContent);
-                selectDepth(depth);
+                
+                // In Nitrox mode, we need to handle the depth differently
+                if (diveState.isNitroxMode) {
+                    // We're already displaying the actual depth for Nitrox
+                    // Just pass it directly to selectDepth
+                    selectDepth(depth);
+                } else {
+                    // Standard air mode
+                    selectDepth(depth);
+                }
             });
         }
         
@@ -772,54 +905,434 @@ function setupTable3Tooltips() {
     const table3 = document.getElementById('table3');
     if (!table3) return;
     
-    const tbody = table3.querySelector('tbody');
-    const cells = tbody.querySelectorAll('.cell-double');
+    // Since we've simplified Table 3 to only show ANDL values, we don't need the dual tooltips anymore
+}
+
+// Setup Table 3 interactions
+function setupTable3Interactions() {
+    const table3 = document.getElementById('table3');
+    if (!table3) return;
     
-    cells.forEach(cell => {
-        // Add RNT and ANDL labels
-        const rntLabel = document.createElement('span');
-        rntLabel.classList.add('rnt-label');
-        rntLabel.textContent = 'RNT';
+    const tbody = table3.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    // Add click events to depth cells
+    rows.forEach(row => {
+        const depthCell = row.querySelector('td:first-child');
+        if (depthCell && !depthCell.classList.contains('cell-unavailable')) {
+            // Make sure we don't add multiple event listeners to the same element
+            depthCell.classList.add('clickable');
+            
+            // Remove any existing click event listeners (to prevent duplicates)
+            const newDepthCell = depthCell.cloneNode(true);
+            depthCell.parentNode.replaceChild(newDepthCell, depthCell);
+            
+            // Add click event to depth cell
+            newDepthCell.addEventListener('click', function() {
+                const clickedDepth = parseFloat(this.textContent);
+                let airDepth, actualDepth;
+                
+                if (diveState.isNitroxMode) {
+                    // In Nitrox mode, the displayed depth is the actual depth
+                    // We need to calculate the air equivalent depth for table lookups
+                    actualDepth = clickedDepth;
+                    
+                    // Find the closest air equivalent depth
+                    const depths = Object.keys(navyTable3).map(Number).sort((a, b) => a - b);
+                    let minDiff = Infinity;
+                    
+                    for (const d of depths) {
+                        const nitroxDepth = Math.round(calculateActualDepthFromEAD(d, diveState.nitroxO2));
+                        const diff = Math.abs(nitroxDepth - actualDepth);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            airDepth = d;
+                        }
+                    }
+                    
+                    // Check if this depth exceeds MOD
+                    const exceedsMOD = actualDepth > diveState.mod;
+                    
+                    if (exceedsMOD) {
+                        if (diveState.nitroxO2 < 27) {
+                            alert(`Depth exceeds maximum operating depth of 100 feet (Nitrogen narcosis limit).`);
+                        } else {
+                            alert(`Depth exceeds maximum operating depth of ${Math.floor(diveState.mod)} feet (Oxygen toxicity limit).`);
+                        }
+                        return;
+                    }
+                } else {
+                    // In air mode, the displayed depth is the air depth
+                    airDepth = clickedDepth;
+                    actualDepth = clickedDepth;
+                }
+                
+                // If a pressure group is selected, highlight the row for this depth
+                if (diveState.newPressureGroup) {
+                    // Clear previous row highlights but keep column highlights
+                    document.querySelectorAll('#table3 tr.highlighted-row').forEach(el => {
+                        el.classList.remove('highlighted-row');
+                    });
+                    
+                    // Highlight just this row
+                    row.classList.add('highlighted-row');
+                    
+                    // Update the selected depth for the second dive
+                    diveState.selectedAirDepth = airDepth;
+                    diveState.selectedDepth = actualDepth;
+                    diveState.targetDepth = actualDepth;
+                } else {
+                    // If no pressure group is selected yet, just highlight the row
+                    document.querySelectorAll('#table3 tr.highlighted-row').forEach(el => {
+                        el.classList.remove('highlighted-row');
+                    });
+                    
+                    // Highlight just this row
+                    row.classList.add('highlighted-row');
+                    
+                    // Update the selected depth
+                    diveState.selectedAirDepth = airDepth;
+                    diveState.selectedDepth = actualDepth;
+                }
+                
+                // Update the results display with the selected depth
+                document.getElementById('selected-depth-result').textContent = actualDepth + ' ft';
+                
+                // Update the residual nitrogen time and adjusted NDL
+                try {
+                    // Use the air equivalent depth for table lookups
+                    const repetitiveInfo = getRepetitiveDiveInfo(diveState.newPressureGroup, airDepth);
+                    
+                    // Update the results display
+                    document.getElementById('repetitive-dive-section').style.display = 'block';
+                    
+                    if (repetitiveInfo.isExceeded) {
+                        document.getElementById('andl-result').textContent = 'N/A';
+                        document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+                        document.getElementById('nodeco-warning').style.display = 'block';
+                    } else {
+                        document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
+                        document.getElementById('nodeco-warning').style.display = 'none';
+                        
+                        // If we have both a selected pressure group and a target pressure group,
+                        // calculate the minimum surface interval
+                        if (diveState.selectedPressureGroup && diveState.targetPressureGroup) {
+                            displayMinimumSurfaceInterval();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error getting repetitive dive info:', error);
+                    document.getElementById('rnt-result').textContent = 'N/A';
+                    document.getElementById('andl-result').textContent = 'N/A';
+                    document.getElementById('nodeco-warning').textContent = 'Error calculating residual nitrogen time.';
+                    document.getElementById('nodeco-warning').style.display = 'block';
+                }
+            });
+        }
         
-        const andlLabel = document.createElement('span');
-        andlLabel.classList.add('andl-label');
-        andlLabel.textContent = 'ANDL';
-        
-        cell.appendChild(rntLabel);
-        cell.appendChild(andlLabel);
+        // Add click events to ANDL cells (for target pressure group selection)
+        const andlCells = row.querySelectorAll('td:not(:first-child)');
+        andlCells.forEach((cell, index) => {
+            if (cell.textContent !== '-' && !cell.classList.contains('cell-unavailable')) {
+                // Make sure we don't add multiple event listeners to the same element
+                cell.classList.add('clickable');
+                
+                // Remove any existing click event listeners (to prevent duplicates)
+                const newCell = cell.cloneNode(true);
+                cell.parentNode.replaceChild(newCell, cell);
+                
+                // Add click event to the cell
+                newCell.addEventListener('click', function() {
+                    // Get the column index of this cell
+                    const cellIndex = Array.from(row.cells).indexOf(this);
+                    
+                    // Get the header cell at the same column index
+                    const headerCell = table3.querySelector(`thead tr:nth-child(2) th:nth-child(${cellIndex + 1})`);
+                    const targetGroup = headerCell.textContent;
+                    
+                    // Set the target pressure group
+                    diveState.targetPressureGroup = targetGroup;
+                    
+                    // Get the depth from the first cell in this row
+                    const depthCell = row.querySelector('td:first-child');
+                    const depth = parseFloat(depthCell.textContent);
+                    
+                    if (diveState.isNitroxMode) {
+                        // In Nitrox mode, the displayed depth is the actual depth
+                        diveState.targetDepth = depth;
+                        
+                        // Find the air equivalent depth
+                        const depths = Object.keys(navyTable3).map(Number).sort((a, b) => a - b);
+                        let minDiff = Infinity;
+                        let airDepth = null;
+                        
+                        for (const d of depths) {
+                            const nitroxDepth = Math.round(calculateActualDepthFromEAD(d, diveState.nitroxO2));
+                            const diff = Math.abs(nitroxDepth - depth);
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                airDepth = d;
+                            }
+                        }
+                        
+                        diveState.targetAirDepth = airDepth;
+                    } else {
+                        // In air mode, the displayed depth is the air depth
+                        diveState.targetDepth = depth;
+                        diveState.targetAirDepth = depth;
+                    }
+                    
+                    // Clear previous cell highlights in Table 3
+                    document.querySelectorAll('#table3 td.target-highlighted').forEach(el => {
+                        el.classList.remove('target-highlighted');
+                    });
+                    
+                    // Clear any target highlights in Table 2
+                    document.querySelectorAll('#table2 td.target-highlighted').forEach(el => {
+                        el.classList.remove('target-highlighted');
+                    });
+                    
+                    // Highlight this cell as the target
+                    this.classList.add('target-highlighted');
+                    
+                    // If we have both a selected pressure group and a target pressure group,
+                    // calculate the minimum surface interval and highlight it in Table 2
+                    if (diveState.selectedPressureGroup && diveState.targetPressureGroup) {
+                        displayMinimumSurfaceInterval();
+                        
+                        // Highlight the corresponding cell in Table 2
+                        highlightSurfaceIntervalInTable2(diveState.selectedPressureGroup, diveState.targetPressureGroup);
+                    }
+                });
+            }
+        });
     });
+}
+
+// Calculate minimum surface interval between two dives
+function calculateMinimumSurfaceInterval(startGroup, targetGroup) {
+    // If the target group is the same or higher than the start group, no surface interval is needed
+    if (!startGroup || !targetGroup) {
+        return null;
+    }
+    
+    // Get the alphabetical order of the groups
+    const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+    const startIndex = groups.indexOf(startGroup);
+    const targetIndex = groups.indexOf(targetGroup);
+    
+    // If target group is same or higher (alphabetically) than start group, return minimum interval
+    if (targetIndex <= startIndex) {
+        // Look up the minimum surface interval in navyTable2
+        if (navyTable2[startGroup] && navyTable2[startGroup][targetGroup]) {
+            return navyTable2[startGroup][targetGroup][0]; // Return the minimum time
+        }
+    }
+    
+    return null; // No valid surface interval found
+}
+
+// Display the minimum surface interval in the UI
+function displayMinimumSurfaceInterval() {
+    if (!diveState.selectedPressureGroup || !diveState.targetPressureGroup) {
+        return;
+    }
+    
+    const minSurfaceInterval = calculateMinimumSurfaceInterval(
+        diveState.selectedPressureGroup,
+        diveState.targetPressureGroup
+    );
+    
+    if (minSurfaceInterval) {
+        // Update the UI to show the minimum surface interval
+        document.getElementById('repetitive-dive-section').style.display = 'block';
+        
+        // Create or update the minimum surface interval display
+        let minIntervalElement = document.getElementById('min-interval-result');
+        if (!minIntervalElement) {
+            // Create the elements if they don't exist
+            const resultItem = document.createElement('div');
+            resultItem.classList.add('result-item');
+            
+            const label = document.createElement('span');
+            label.classList.add('result-label');
+            label.textContent = 'Minimum Surface Interval:';
+            
+            minIntervalElement = document.createElement('span');
+            minIntervalElement.id = 'min-interval-result';
+            minIntervalElement.classList.add('result-value');
+            
+            resultItem.appendChild(label);
+            resultItem.appendChild(minIntervalElement);
+            
+            // Insert after the new pressure group result
+            const newGroupResult = document.querySelector('.result-item:has(#new-group-result)');
+            if (newGroupResult) {
+                newGroupResult.parentNode.insertBefore(resultItem, newGroupResult.nextSibling);
+            } else {
+                document.getElementById('repetitive-dive-section').appendChild(resultItem);
+            }
+        }
+        
+        minIntervalElement.textContent = minSurfaceInterval;
+        
+        // Highlight the cell in Table 2
+        highlightSurfaceIntervalInTable2(diveState.selectedPressureGroup, diveState.targetPressureGroup);
+    }
+}
+
+// Highlight the surface interval cell in Table 2
+function highlightSurfaceIntervalInTable2(startGroup, targetGroup) {
+    const table2 = document.getElementById('table2');
+    if (!table2) return;
+    
+    // Clear previous highlights but keep the row highlight
+    document.querySelectorAll('#table2 td.highlighted-cell').forEach(el => {
+        if (!el.parentElement.classList.contains('highlighted-row')) {
+            el.classList.remove('highlighted-cell');
+        }
+    });
+    
+    // Clear any target highlights
+    document.querySelectorAll('#table2 td.target-highlighted').forEach(el => {
+        el.classList.remove('target-highlighted');
+    });
+    
+    // Find the row for the start group
+    const startRow = Array.from(table2.querySelectorAll('tbody tr')).find(row => {
+        const firstCell = row.querySelector('td:first-child');
+        return firstCell && firstCell.textContent === startGroup;
+    });
+    
+    if (!startRow) return;
+    
+    // Find the column for the target group
+    const headerRow = table2.querySelector('thead tr:nth-child(2)');
+    let targetColIndex = -1;
+    
+    Array.from(headerRow.querySelectorAll('th')).forEach((th, index) => {
+        if (th.textContent === targetGroup) {
+            targetColIndex = index;
+        }
+    });
+    
+    if (targetColIndex === -1) return;
+    
+    // Highlight the cell at the intersection
+    const targetCell = startRow.querySelector(`td:nth-child(${targetColIndex + 1})`);
+    if (targetCell) {
+        // Use target-highlighted class to make it stand out
+        targetCell.classList.add('target-highlighted');
+        
+        // Scroll to make the cell visible
+        targetCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 // Select a depth in Table 1
 function selectDepth(depth) {
-    // Find the closest depth in the tables
-    const tableDepth = findClosestDepth(depth);
-    if (tableDepth === -1) {
-        alert('Depth exceeds maximum table depth of 130 feet.');
-        return;
+    // In Nitrox mode, we need to handle the depth differently
+    if (diveState.isNitroxMode) {
+        // The depth passed is the actual Nitrox depth
+        // We need to find the corresponding air depth for the tables
+        const depths = Object.keys(navyTable1).map(Number).sort((a, b) => a - b);
+        let airDepth = null;
+        let actualDepth = depth;
+        
+        // Find the air depth that corresponds to this Nitrox depth
+        for (const d of depths) {
+            const nitroxDepth = Math.round(calculateActualDepthFromEAD(d, diveState.nitroxO2));
+            if (nitroxDepth === Math.round(actualDepth)) {
+                airDepth = d;
+                break;
+            }
+        }
+        
+        // If we couldn't find a matching air depth, find the closest one
+        if (airDepth === null) {
+            let minDiff = Infinity;
+            for (const d of depths) {
+                const nitroxDepth = Math.round(calculateActualDepthFromEAD(d, diveState.nitroxO2));
+                const diff = Math.abs(nitroxDepth - Math.round(actualDepth));
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    airDepth = d;
+                    actualDepth = nitroxDepth; // Use the exact Nitrox depth for display
+                }
+            }
+        }
+        
+        // Check if the depth exceeds MOD
+        if (actualDepth > diveState.mod) {
+            if (diveState.nitroxO2 < 27) {
+                alert(`Depth exceeds maximum operating depth of 100 feet (Nitrogen narcosis limit).`);
+            } else {
+                alert(`Depth exceeds maximum operating depth of ${Math.floor(diveState.mod)} feet (Oxygen toxicity limit).`);
+            }
+            return;
+        }
+        
+        // Clear all highlights first
+        clearAllHighlights();
+        
+        // Update state - store both the actual depth and the air equivalent depth
+        diveState.selectedDepth = actualDepth;
+        diveState.selectedAirDepth = airDepth; // Store the air equivalent for table lookups
+        diveState.selectedBottomTime = null;
+        diveState.selectedPressureGroup = null;
+        diveState.selectedSurfaceInterval = null;
+        diveState.newPressureGroup = null;
+        diveState.targetDepth = null;
+        diveState.targetPressureGroup = null;
+        
+        // Highlight the row in Table 1
+        highlightRowInTable1(actualDepth);
+        
+        // Update the results display
+        document.getElementById('selected-depth-result').textContent = actualDepth + ' ft';
+        const [maxNDL, timeGroups] = navyTable1[airDepth];
+        document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
+        document.getElementById('pressure-group-result').textContent = '--';
+    } else {
+        // Standard air mode
+        // Find the closest depth in the tables
+        const tableDepth = findClosestDepth(depth);
+        if (tableDepth === -1) {
+            alert('Depth exceeds maximum table depth of 130 feet.');
+            return;
+        }
+        
+        // Clear all highlights first
+        clearAllHighlights();
+        
+        // Update state
+        diveState.selectedDepth = tableDepth;
+        diveState.selectedAirDepth = tableDepth; // In air mode, these are the same
+        diveState.selectedBottomTime = null;
+        diveState.selectedPressureGroup = null;
+        diveState.selectedSurfaceInterval = null;
+        diveState.newPressureGroup = null;
+        diveState.targetDepth = null;
+        diveState.targetPressureGroup = null;
+        
+        // Highlight the row in Table 1
+        highlightRowInTable1(tableDepth);
+        
+        // Update the results display
+        document.getElementById('selected-depth-result').textContent = tableDepth + ' ft';
+        const [maxNDL, timeGroups] = navyTable1[tableDepth];
+        document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
+        document.getElementById('pressure-group-result').textContent = '--';
     }
-    
-    // Clear all highlights first
-    clearAllHighlights();
-    
-    // Update state
-    diveState.selectedDepth = tableDepth;
-    diveState.selectedBottomTime = null;
-    diveState.selectedPressureGroup = null;
-    diveState.selectedSurfaceInterval = null;
-    diveState.newPressureGroup = null;
-    
-    // Highlight the row in Table 1
-    highlightRowInTable1(tableDepth);
-    
-    // Update the results display
-    document.getElementById('selected-depth-result').textContent = tableDepth + ' ft';
-    const [maxNDL, timeGroups] = navyTable1[tableDepth];
-    document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
-    document.getElementById('pressure-group-result').textContent = '--';
     
     // Hide repetitive dive section
     document.getElementById('repetitive-dive-section').style.display = 'none';
+    
+    // Remove the minimum surface interval display if it exists
+    const minIntervalElement = document.getElementById('min-interval-result');
+    if (minIntervalElement && minIntervalElement.parentElement) {
+        minIntervalElement.parentElement.remove();
+    }
 }
 
 // Select a bottom time and pressure group in Table 1
@@ -860,6 +1373,11 @@ function selectSurfaceInterval(surfaceInterval, newGroup) {
     clearTable2Highlights();
     clearTable3Highlights();
     
+    // Clear any target highlights in Table 3
+    document.querySelectorAll('#table3 td.target-highlighted').forEach(el => {
+        el.classList.remove('target-highlighted');
+    });
+    
     // Update state
     diveState.selectedSurfaceInterval = surfaceInterval;
     diveState.newPressureGroup = newGroup;
@@ -870,25 +1388,33 @@ function selectSurfaceInterval(surfaceInterval, newGroup) {
     // Highlight the new pressure group column in Table 2
     highlightNewGroupInTable2(newGroup);
     
-    // Highlight the corresponding row in Table 3
-    highlightRowInTable3(diveState.selectedDepth, newGroup);
+    // Highlight only the column in Table 3, not the row
+    highlightColumnInTable3(newGroup);
     
-    // Get residual nitrogen time and adjusted NDL
-    const repetitiveInfo = getRepetitiveDiveInfo(newGroup, diveState.selectedDepth);
+    // Keep the original first dive depth in the results display
+    // Don't update the depth until user clicks on a row in Table 3
     
     // Update the results display
     document.getElementById('repetitive-dive-section').style.display = 'block';
-    document.getElementById('new-group-result').textContent = newGroup;
+    document.getElementById('new-group-result').textContent = newGroup || 'None';
     
-    if (repetitiveInfo.isExceeded) {
-        document.getElementById('rnt-result').textContent = 'N/A';
-        document.getElementById('andl-result').textContent = 'N/A';
-        document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
-        document.getElementById('nodeco-warning').style.display = 'block';
-    } else {
-        document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
-        document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
-        document.getElementById('nodeco-warning').style.display = 'none';
+    // Don't calculate repetitive info yet - wait for user to select a depth in Table 3
+    document.getElementById('rnt-result').textContent = '-- minutes';
+    document.getElementById('andl-result').textContent = '-- minutes';
+    document.getElementById('nodeco-warning').style.display = 'none';
+    document.getElementById('nodeco-warning').textContent = 'Please select a depth in Table 3 for your repetitive dive.';
+    
+    // If we already have a target pressure group and depth, update them
+    if (diveState.targetPressureGroup && diveState.targetDepth) {
+        // Clear the target pressure group since we're now working in the other direction
+        diveState.targetPressureGroup = null;
+        diveState.targetDepth = null;
+        
+        // Remove the minimum surface interval display if it exists
+        const minIntervalElement = document.getElementById('min-interval-result');
+        if (minIntervalElement && minIntervalElement.parentElement) {
+            minIntervalElement.parentElement.remove();
+        }
     }
 }
 
@@ -917,9 +1443,19 @@ function clearTable2Highlights() {
 
 // Clear Table 3 highlights
 function clearTable3Highlights() {
-    document.querySelectorAll('#table3 tr.highlighted-row, #table3 td.highlighted-cell').forEach(el => {
-        el.classList.remove('highlighted-row');
+    // Clear all cell highlights
+    document.querySelectorAll('#table3 td.highlighted-cell, #table3 th.highlighted-cell').forEach(el => {
         el.classList.remove('highlighted-cell');
+    });
+    
+    // Clear target highlights
+    document.querySelectorAll('#table3 td.target-highlighted').forEach(el => {
+        el.classList.remove('target-highlighted');
+    });
+    
+    // Clear row highlights separately
+    document.querySelectorAll('#table3 tr.highlighted-row').forEach(el => {
+        el.classList.remove('highlighted-row');
     });
 }
 
@@ -933,24 +1469,79 @@ function highlightRowInTable1(depth) {
         // Clear previous highlights first
         clearTable1Highlights();
         
-        rows.forEach(row => {
-            const depthCell = row.querySelector('td:first-child');
-            if (depthCell && parseFloat(depthCell.textContent) === depth) {
+        // In Nitrox mode, we need to find the row by the displayed depth, not the air depth
+        if (diveState.isNitroxMode) {
+            // Find the closest row by displayed depth
+            let closestRow = null;
+            let minDiff = Infinity;
+            
+            rows.forEach(row => {
+                const depthCell = row.querySelector('td:first-child');
+                if (depthCell) {
+                    const rowDepth = parseFloat(depthCell.textContent);
+                    const diff = Math.abs(rowDepth - depth);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestRow = row;
+                    }
+                }
+            });
+            
+            if (closestRow) {
                 // Highlight the entire row
-                row.classList.add('highlighted-row');
+                closestRow.classList.add('highlighted-row');
                 
                 // Highlight all cells in the row
-                const cells = row.querySelectorAll('td');
+                const cells = closestRow.querySelectorAll('td');
                 cells.forEach(cell => {
                     cell.classList.add('highlighted-cell');
                 });
                 
-                // Update the results display
-                document.getElementById('selected-depth-result').textContent = depth + ' ft';
-                const [maxNDL, timeGroups] = navyTable1[depth];
-                document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
+                // Get the actual depth from the row
+                const depthCell = closestRow.querySelector('td:first-child');
+                const actualDepth = parseFloat(depthCell.textContent);
+                
+                // Find the corresponding air depth for this Nitrox depth
+                // This is needed to get the correct NDL from navyTable1
+                const depths = Object.keys(navyTable1).map(Number).sort((a, b) => a - b);
+                let airDepth = null;
+                
+                for (const d of depths) {
+                    const nitroxDepth = Math.round(calculateActualDepthFromEAD(d, diveState.nitroxO2));
+                    if (nitroxDepth === actualDepth) {
+                        airDepth = d;
+                        break;
+                    }
+                }
+                
+                if (airDepth !== null) {
+                    // Update the results display
+                    document.getElementById('selected-depth-result').textContent = actualDepth + ' ft';
+                    const [maxNDL, timeGroups] = navyTable1[airDepth];
+                    document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
+                }
             }
-        });
+        } else {
+            // Standard air mode - find exact depth match
+            rows.forEach(row => {
+                const depthCell = row.querySelector('td:first-child');
+                if (depthCell && parseFloat(depthCell.textContent) === depth) {
+                    // Highlight the entire row
+                    row.classList.add('highlighted-row');
+                    
+                    // Highlight all cells in the row
+                    const cells = row.querySelectorAll('td');
+                    cells.forEach(cell => {
+                        cell.classList.add('highlighted-cell');
+                    });
+                    
+                    // Update the results display
+                    document.getElementById('selected-depth-result').textContent = depth + ' ft';
+                    const [maxNDL, timeGroups] = navyTable1[depth];
+                    document.getElementById('nodeco-result').textContent = maxNDL + ' minutes';
+                }
+            });
+        }
     }
 }
 
@@ -1059,7 +1650,7 @@ function highlightNewGroupInTable2(newGroup) {
         
         if (colIndex !== -1) {
             // Highlight the entire column
-            const actualColIndex = colIndex + 1; // +1 because of start group column
+            const actualColIndex = colIndex; // +1 because of start group column
             const rows = tbody.querySelectorAll('tr');
             
             rows.forEach(row => {
@@ -1079,9 +1670,79 @@ function highlightNewGroupInTable2(newGroup) {
             }
         }
     }
+}
+
+// Highlight only the column in Table 3 for the given pressure group
+function highlightColumnInTable3(pressureGroup) {
+    if (!pressureGroup) return;
+    
+    const table3 = document.getElementById('table3');
+    if (table3) {
+        const thead = table3.querySelector('thead');
+        const tbody = table3.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr');
+        
+        // Clear previous highlights first
+        clearTable3Highlights();
+        
+        // Find the column index for the pressure group
+        let colIndex = -1;
+        const headerCells = thead.querySelectorAll('tr:nth-child(2) th');
+        
+        headerCells.forEach((cell, index) => {
+            if (cell.textContent === pressureGroup) {
+                colIndex = index;
+                // Highlight the header cell
+                cell.classList.add('highlighted-cell');
+            }
+        });
+        
+        if (colIndex !== -1) {
+            // Highlight the entire column - no need to add 1 as the column index already accounts for the depth column
+            const actualColIndex = colIndex;
+            rows.forEach(row => {
+                if (row.cells[actualColIndex]) {
+                    row.cells[actualColIndex].classList.add('highlighted-cell');
+                }
+            });
+        }
+    }
+}
+
+// Highlight the row in Table 3 for the given depth and pressure group
+function highlightRowInTable3(depth, pressureGroup = null) {
+    const table3 = document.getElementById('table3');
+    if (table3) {
+        const thead = table3.querySelector('thead');
+        const tbody = table3.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr');
+        
+        // In Nitrox mode, we need to find the air equivalent depth for table lookups
+        let lookupDepth = depth;
+        if (diveState.isNitroxMode) {
+            // Convert the actual depth to an air equivalent depth for table lookups
+            const depths = Object.keys(navyTable3).map(Number).sort((a, b) => a - b);
+            let airDepth = null;
+            
+            // Find the closest standard depth in the tables
+            let minDiff = Infinity;
+            for (const d of depths) {
+                const diff = Math.abs(d - depth);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    airDepth = d;
+                }
+            }
+            
+            if (airDepth !== null) {
+                lookupDepth = airDepth;
+            }
+        }
+        
+        // Highlight the depth row
         rows.forEach(row => {
             const depthCell = row.querySelector('td:first-child');
-            if (depthCell && parseFloat(depthCell.textContent) === depth) {
+            if (depthCell && parseFloat(depthCell.textContent) === lookupDepth) {
                 // Highlight the entire row
                 row.classList.add('highlighted-row');
                 
@@ -1106,29 +1767,43 @@ function highlightNewGroupInTable2(newGroup) {
                     });
                     
                     if (colIndex !== -1) {
-                        // Highlight the entire column
-                        const actualColIndex = colIndex + 1; // +1 because of depth column
+                        // Highlight the entire column - no need to subtract 1
+                        const actualColIndex = colIndex;
                         rows.forEach(r => {
                             if (r.cells[actualColIndex]) {
                                 r.cells[actualColIndex].classList.add('highlighted-cell');
                             }
                         });
                         
-                        // Get residual nitrogen time and adjusted NDL
-                        const repetitiveInfo = getRepetitiveDiveInfo(pressureGroup, depth);
-                        
-                        // Update the results display
-                        document.getElementById('repetitive-dive-section').style.display = 'block';
-                        
-                        if (repetitiveInfo.isExceeded) {
+                        try {
+                            // Get residual nitrogen time and adjusted NDL
+                            // In Nitrox mode, we use the air equivalent depth for table lookups
+                            const repetitiveInfo = getRepetitiveDiveInfo(pressureGroup, lookupDepth);
+                            
+                            // Update the results display
+                            document.getElementById('repetitive-dive-section').style.display = 'block';
+                            
+                            if (repetitiveInfo.isExceeded) {
+                                document.getElementById('rnt-result').textContent = 'N/A';
+                                document.getElementById('andl-result').textContent = 'N/A';
+                                document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+                                document.getElementById('nodeco-warning').style.display = 'block';
+                            } else {
+                                document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
+                                document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
+                                document.getElementById('nodeco-warning').style.display = 'none';
+                                
+                                // In Nitrox mode, display the actual depth in the results
+                                if (diveState.isNitroxMode) {
+                                    document.getElementById('selected-depth-result').textContent = depth + ' ft';
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error getting repetitive dive info:', error);
                             document.getElementById('rnt-result').textContent = 'N/A';
                             document.getElementById('andl-result').textContent = 'N/A';
-                            document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+                            document.getElementById('nodeco-warning').textContent = 'Error calculating residual nitrogen time.';
                             document.getElementById('nodeco-warning').style.display = 'block';
-                        } else {
-                            document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
-                            document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
-                            document.getElementById('nodeco-warning').style.display = 'none';
                         }
                     }
                 }
@@ -1148,47 +1823,145 @@ function populateTable1() {
     // Get depths from navyTable1
     const depths = Object.keys(navyTable1).map(Number).sort((a, b) => a - b);
     
-    // Create rows for each depth
-    depths.forEach(depth => {
-        const [maxNDL, timeGroups] = navyTable1[depth];
-        const row = document.createElement('tr');
-        
-        // Add depth cell
-        const depthCell = document.createElement('td');
-        depthCell.textContent = depth;
-        row.appendChild(depthCell);
-        
-        // Add NDL cell
-        const ndlCell = document.createElement('td');
-        ndlCell.textContent = maxNDL;
-        row.appendChild(ndlCell);
-        
-        // Add cells for each pressure group
-        const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
-        groups.forEach(group => {
-            const cell = document.createElement('td');
+    // If in Nitrox mode, we need to calculate equivalent air depths
+    if (diveState.isNitroxMode) {
+        // Create rows for each depth
+        depths.forEach(airDepth => {
+            // Calculate the actual depth for this EAD based on Nitrox mix
+            const actualDepth = calculateActualDepthFromEAD(airDepth, diveState.nitroxO2);
+            const roundedActualDepth = Math.round(actualDepth);
             
-            // Find the time for this group
-            let time = null;
-            for (const [t, g] of Object.entries(timeGroups)) {
-                if (g === group) {
-                    time = t;
-                    break;
+            // Check if this depth exceeds MOD (oxygen toxicity limit)
+            const exceedsMOD = roundedActualDepth > diveState.mod;
+            
+            // Check if this depth is at risk for nitrogen narcosis
+            const narcosisRisk = isNarcosisRisk(roundedActualDepth);
+            
+            // Add a reason for the MOD limit or narcosis risk
+            let modReason = '';
+            if (exceedsMOD) {
+                modReason = `Oxygen toxicity limit (pO₂ 1.4 ATA)`;
+            }
+            
+            const [maxNDL, timeGroups] = navyTable1[airDepth];
+            const row = document.createElement('tr');
+            
+            // Add classes for styling
+            row.classList.add('adjusted-depth');
+            if (exceedsMOD) {
+                row.classList.add('beyond-mod');
+            } else if (narcosisRisk) {
+                row.classList.add('narcosis-risk');
+            }
+            
+            // Add depth cell (showing the actual Nitrox depth)
+            const depthCell = document.createElement('td');
+            depthCell.textContent = roundedActualDepth;
+            depthCell.title = `Equivalent Air Depth: ${airDepth} ft`;
+            row.appendChild(depthCell);
+            
+            // Add NDL cell
+            const ndlCell = document.createElement('td');
+            ndlCell.textContent = maxNDL;
+            row.appendChild(ndlCell);
+            
+            // Add cells for each pressure group
+            const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+            groups.forEach(group => {
+                const cell = document.createElement('td');
+                
+                // Find the time for this group
+                let time = null;
+                for (const [t, g] of Object.entries(timeGroups)) {
+                    if (g === group) {
+                        time = t;
+                        break;
+                    }
                 }
-            }
+                
+                if (time) {
+                    cell.textContent = time;
+                    cell.classList.add(`group-${group.toLowerCase()}`);
+                    
+                    // If beyond MOD, make cell non-clickable
+                    if (exceedsMOD) {
+                        cell.classList.add('cell-unavailable');
+                        cell.title = `Exceeds Maximum Operating Depth: ${modReason}`;
+                    } else if (narcosisRisk) {
+                        // For depths beyond 100ft, add warning but keep clickable
+                        cell.classList.add('narcosis-warning');
+                        cell.title = `Warning: Increased risk of nitrogen narcosis at 100ft and beyond`;
+                    }
+                } else {
+                    cell.textContent = '-';
+                }
+                
+                row.appendChild(cell);
+            });
             
-            if (time) {
-                cell.textContent = time;
-                cell.classList.add(`group-${group.toLowerCase()}`);
-            } else {
-                cell.textContent = '-';
-            }
-            
-            row.appendChild(cell);
+            tbody.appendChild(row);
         });
-        
-        tbody.appendChild(row);
-    });
+    } else {
+        // Standard air table
+        // Create rows for each depth
+        depths.forEach(depth => {
+            const [maxNDL, timeGroups] = navyTable1[depth];
+            const row = document.createElement('tr');
+            
+            // Check if this depth is at risk for nitrogen narcosis
+            const narcosisRisk = isNarcosisRisk(depth);
+            
+            // Add classes for styling
+            if (narcosisRisk) {
+                row.classList.add('narcosis-risk');
+            }
+            
+            // Add depth cell
+            const depthCell = document.createElement('td');
+            depthCell.textContent = depth;
+            if (narcosisRisk) {
+                depthCell.title = `Warning: Increased risk of nitrogen narcosis beyond 100ft`;
+            }
+            row.appendChild(depthCell);
+            
+            // Add NDL cell
+            const ndlCell = document.createElement('td');
+            ndlCell.textContent = maxNDL;
+            row.appendChild(ndlCell);
+            
+            // Add cells for each pressure group
+            const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+            groups.forEach(group => {
+                const cell = document.createElement('td');
+                
+                // Find the time for this group
+                let time = null;
+                for (const [t, g] of Object.entries(timeGroups)) {
+                    if (g === group) {
+                        time = t;
+                        break;
+                    }
+                }
+                
+                if (time) {
+                    cell.textContent = time;
+                    cell.classList.add(`group-${group.toLowerCase()}`);
+                    
+                    // Add narcosis warning for depths beyond 100ft
+                    if (narcosisRisk) {
+                        cell.classList.add('narcosis-warning');
+                        cell.title = `Warning: Increased risk of nitrogen narcosis beyond 100ft`;
+                    }
+                } else {
+                    cell.textContent = '-';
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            tbody.appendChild(row);
+        });
+    }
 }
 
 // Populate Table 2: Surface Interval Credit Table
@@ -1284,10 +2057,22 @@ function populateTable2() {
     });
 }
 
-// Populate Table 3: Residual Nitrogen Times
+// Populate Table 3: Adjusted No-Decompression Limits
 function populateTable3() {
     const table = document.getElementById('table3');
     if (!table) return;
+    
+    // Update the table header to reflect the change
+    const tableHeader = document.querySelector('#table3 thead tr:first-child th:first-child');
+    if (tableHeader) {
+        tableHeader.colSpan = 1;
+    }
+    
+    // Update the table title
+    const tableTitle = document.querySelector('h3:nth-of-type(3)');
+    if (tableTitle) {
+        tableTitle.textContent = 'Table 3: Adjusted No-Decompression Limits (Minutes)';
+    }
     
     const tbody = table.querySelector('tbody');
     tbody.innerHTML = '';
@@ -1295,56 +2080,355 @@ function populateTable3() {
     // Get depths from navyTable3
     const depths = Object.keys(navyTable3).map(Number).sort((a, b) => a - b);
     
-    // Create rows for each depth
-    depths.forEach(depth => {
-        const row = document.createElement('tr');
-        
-        // Add depth cell
-        const depthCell = document.createElement('td');
-        depthCell.textContent = depth;
-        row.appendChild(depthCell);
-        
-        // Add cells for each pressure group
-        const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
-        groups.forEach(group => {
-            const cell = document.createElement('td');
+    // If in Nitrox mode, we need to calculate equivalent air depths
+    if (diveState.isNitroxMode) {
+        // Create rows for each depth
+        depths.forEach(airDepth => {
+            // Calculate the actual depth for this EAD based on Nitrox mix
+            const actualDepth = calculateActualDepthFromEAD(airDepth, diveState.nitroxO2);
+            const roundedActualDepth = Math.round(actualDepth);
             
-            // Get RNT and ANDL for this depth and group
-            if (navyTable3[depth] && navyTable3[depth][group]) {
-                const [rnt, andl] = navyTable3[depth][group];
-                
-                if (rnt === 'N/L') {
-                    cell.textContent = 'N/L';
-                    cell.classList.add('cell-nl');
-                    cell.title = 'Not recommended';
-                } else if (andl === 0) {
-                    cell.textContent = '-';
-                    cell.classList.add('cell-unavailable');
-                    cell.title = 'Not available';
-                } else {
-                    cell.classList.add('cell-double');
-                    cell.classList.add(`group-${group.toLowerCase()}`);
-                    
-                    const topSpan = document.createElement('span');
-                    topSpan.classList.add('top-value');
-                    topSpan.textContent = rnt;
-                    topSpan.title = 'Residual Nitrogen Time (minutes)';
-                    
-                    const bottomSpan = document.createElement('span');
-                    bottomSpan.classList.add('bottom-value');
-                    bottomSpan.textContent = andl;
-                    bottomSpan.title = 'Adjusted No-Decompression Limit (minutes)';
-                    
-                    cell.appendChild(topSpan);
-                    cell.appendChild(bottomSpan);
-                }
-            } else {
-                cell.textContent = '-';
+            // Check if this depth exceeds MOD (oxygen toxicity limit)
+            const exceedsMOD = roundedActualDepth > diveState.mod;
+            
+            // Check if this depth is at risk for nitrogen narcosis
+            const narcosisRisk = isNarcosisRisk(roundedActualDepth);
+            
+            // Add a reason for the MOD limit or narcosis risk
+            let modReason = '';
+            if (exceedsMOD) {
+                modReason = `Oxygen toxicity limit (pO₂ 1.4 ATA)`;
             }
             
-            row.appendChild(cell);
+            const row = document.createElement('tr');
+            
+            // Add classes for styling
+            row.classList.add('adjusted-depth');
+            if (exceedsMOD) {
+                row.classList.add('beyond-mod');
+            } else if (narcosisRisk) {
+                row.classList.add('narcosis-risk');
+            }
+            
+            // Add depth cell (showing the actual Nitrox depth, not the air depth)
+            const depthCell = document.createElement('td');
+            depthCell.textContent = roundedActualDepth;
+            depthCell.title = `Equivalent Air Depth: ${airDepth} ft`;
+            depthCell.classList.add('clickable');
+            
+            // If beyond MOD, make cell non-clickable
+            if (exceedsMOD) {
+                depthCell.classList.add('cell-unavailable');
+                depthCell.title = `Exceeds Maximum Operating Depth: ${modReason}`;
+            } else if (narcosisRisk) {
+                // For depths beyond 100ft, add warning but keep clickable
+                depthCell.classList.add('narcosis-warning');
+                depthCell.title = `Warning: Increased risk of nitrogen narcosis beyond 100ft`;
+            }
+            
+            // Add click event to depth cell
+            depthCell.addEventListener('click', function() {
+                if (exceedsMOD) {
+                    alert(`Depth exceeds maximum operating depth of ${Math.floor(diveState.mod)} feet (Oxygen toxicity limit).`);
+                    return;
+                }
+                
+                // For depths with narcosis risk, show a warning but allow the user to proceed
+                if (narcosisRisk) {
+                    if (!confirm(`Warning: Depths at 100 feet and beyond have an increased risk of nitrogen narcosis. Do you want to proceed?`)) {
+                        return;
+                    }
+                }
+                
+                const actualDepthClicked = parseFloat(this.textContent);
+                
+                // If a pressure group is selected, highlight the row for this depth
+                if (diveState.newPressureGroup) {
+                    // Clear previous row highlights but keep column highlights
+                    document.querySelectorAll('#table3 tr.highlighted-row').forEach(el => {
+                        el.classList.remove('highlighted-row');
+                    });
+                    
+                    // Highlight just this row
+                    row.classList.add('highlighted-row');
+                    
+                    // Update the selected depth for the second dive
+                    // In Nitrox mode, we need to store both the air depth and the actual depth
+                    diveState.selectedAirDepth = airDepth;
+                    diveState.selectedDepth = actualDepthClicked;
+                    diveState.targetDepth = actualDepthClicked;
+                } else {
+                    // If no pressure group is selected yet, just highlight the row
+                    // Clear previous row highlights
+                    document.querySelectorAll('#table3 tr.highlighted-row').forEach(el => {
+                        el.classList.remove('highlighted-row');
+                    });
+                    
+                    // Highlight just this row
+                    row.classList.add('highlighted-row');
+                    
+                    // Update the selected depth
+                    diveState.selectedAirDepth = airDepth;
+                    diveState.selectedDepth = actualDepthClicked;
+                    
+                    // Update the results display with the selected depth
+                    document.getElementById('selected-depth-result').textContent = actualDepthClicked + ' ft';
+                }
+                
+                // Update the results display with the selected depth
+                document.getElementById('selected-depth-result').textContent = actualDepthClicked + ' ft';
+                
+                // Update the residual nitrogen time and adjusted NDL
+                try {
+                    // Use the air equivalent depth for table lookups, not the actual Nitrox depth
+                    const repetitiveInfo = getRepetitiveDiveInfo(diveState.newPressureGroup, airDepth);
+                    
+                    // Update the results display
+                    document.getElementById('repetitive-dive-section').style.display = 'block';
+                    
+                    if (repetitiveInfo.isExceeded) {
+                        document.getElementById('rnt-result').textContent = 'N/A';
+                        document.getElementById('andl-result').textContent = 'N/A';
+                        document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+                        document.getElementById('nodeco-warning').style.display = 'block';
+                    } else {
+                        document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
+                        document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
+                        document.getElementById('nodeco-warning').style.display = 'none';
+                        
+                        // If we have both a selected pressure group and a target pressure group,
+                        // calculate the minimum surface interval
+                        if (diveState.selectedPressureGroup && diveState.targetPressureGroup) {
+                            displayMinimumSurfaceInterval();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error getting repetitive dive info:', error);
+                    document.getElementById('rnt-result').textContent = 'N/A';
+                    document.getElementById('andl-result').textContent = 'N/A';
+                    document.getElementById('nodeco-warning').textContent = 'Error calculating residual nitrogen time.';
+                    document.getElementById('nodeco-warning').style.display = 'block';
+                }
+            });
+            
+            row.appendChild(depthCell);
+            
+            // Add cells for each pressure group
+            const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+            groups.forEach(group => {
+                const cell = document.createElement('td');
+                
+                // Get RNT and ANDL for this depth and group
+                if (navyTable3[airDepth] && navyTable3[airDepth][group]) {
+                    const [rnt, andl] = navyTable3[airDepth][group];
+                    
+                    if (rnt === 'N/L' || andl === 0) {
+                        cell.textContent = '-';
+                        cell.classList.add('cell-unavailable');
+                        cell.title = 'Not available';
+                    } else if (exceedsMOD) {
+                        cell.textContent = '-';
+                        cell.classList.add('cell-unavailable');
+                        cell.title = `Exceeds Maximum Operating Depth: ${modReason}`;
+                    } else if (narcosisRisk) {
+                        // For depths beyond 100ft, add warning but keep clickable
+                        cell.classList.add(`group-${group.toLowerCase()}`);
+                        cell.classList.add('narcosis-warning');
+                        cell.textContent = andl;
+                        cell.title = `Warning: Increased risk of nitrogen narcosis at 100ft and beyond. Adjusted No-Decompression Limit: ${andl} minutes.`;
+                    } else {
+                        cell.classList.add(`group-${group.toLowerCase()}`);
+                        cell.textContent = andl;
+                        cell.title = `Adjusted No-Decompression Limit (${andl} minutes): This is the maximum time you can stay at this depth for your repetitive dive.`;
+                        
+                        // Make the cell clickable to select as target pressure group
+                        cell.classList.add('clickable');
+                        cell.addEventListener('click', function() {
+                            // Set the target pressure group
+                            diveState.targetPressureGroup = group;
+                            diveState.targetDepth = roundedActualDepth;
+                            diveState.targetAirDepth = airDepth;
+                            
+                            // Clear previous cell highlights in Table 3
+                            document.querySelectorAll('#table3 td.target-highlighted').forEach(el => {
+                                el.classList.remove('target-highlighted');
+                            });
+                            
+                            // Clear any target highlights in Table 2
+                            document.querySelectorAll('#table2 td.target-highlighted').forEach(el => {
+                                el.classList.remove('target-highlighted');
+                            });
+                            
+                            // Highlight this cell as the target
+                            cell.classList.add('target-highlighted');
+                            
+                            // If we have both a selected pressure group and a target pressure group,
+                            // calculate the minimum surface interval and highlight it in Table 2
+                            if (diveState.selectedPressureGroup && diveState.targetPressureGroup) {
+                                displayMinimumSurfaceInterval();
+                                
+                                // Highlight the corresponding cell in Table 2
+                                highlightSurfaceIntervalInTable2(diveState.selectedPressureGroup, diveState.targetPressureGroup);
+                            }
+                        });
+                    }
+                } else {
+                    cell.textContent = '-';
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            tbody.appendChild(row);
         });
-        
-        tbody.appendChild(row);
-    });
+    } else {
+        // Standard air table
+        // Create rows for each depth
+        depths.forEach(depth => {
+            const row = document.createElement('tr');
+            
+            // Check if this depth is at risk for nitrogen narcosis
+            const narcosisRisk = isNarcosisRisk(depth);
+            
+            // Add classes for styling
+            if (narcosisRisk) {
+                row.classList.add('narcosis-risk');
+            }
+            
+            // Add depth cell
+            const depthCell = document.createElement('td');
+            depthCell.textContent = depth;
+            depthCell.classList.add('clickable');
+            
+            if (narcosisRisk) {
+                depthCell.classList.add('narcosis-warning');
+                depthCell.title = `Warning: Increased risk of nitrogen narcosis at 100ft and beyond`;
+            }
+            
+            // Add click event to depth cell
+            depthCell.addEventListener('click', function() {
+                const clickedDepth = parseFloat(this.textContent);
+                
+                // For depths with narcosis risk, show a warning but allow the user to proceed
+                if (narcosisRisk) {
+                    if (!confirm(`Warning: Depths at 100 feet and beyond have an increased risk of nitrogen narcosis. Do you want to proceed?`)) {
+                        return;
+                    }
+                }
+                
+                // If a pressure group is selected, highlight the row for this depth
+                if (diveState.newPressureGroup) {
+                    // Clear previous row highlights but keep column highlights
+                    document.querySelectorAll('#table3 tr.highlighted-row').forEach(el => {
+                        el.classList.remove('highlighted-row');
+                    });
+                    
+                    // Highlight just this row
+                    row.classList.add('highlighted-row');
+                    
+                    // Update the selected depth for the second dive
+                    diveState.selectedDepth = clickedDepth;
+                    diveState.targetDepth = clickedDepth;
+                    
+                    // Update the results display with the selected depth
+                    document.getElementById('selected-depth-result').textContent = clickedDepth + ' ft';
+                    
+                    // Update the residual nitrogen time and adjusted NDL
+                    try {
+                        const repetitiveInfo = getRepetitiveDiveInfo(diveState.newPressureGroup, clickedDepth);
+                        
+                        // Update the results display
+                        document.getElementById('repetitive-dive-section').style.display = 'block';
+                        
+                        if (repetitiveInfo.isExceeded) {
+                            document.getElementById('rnt-result').textContent = 'N/A';
+                            document.getElementById('andl-result').textContent = 'N/A';
+                            document.getElementById('nodeco-warning').textContent = repetitiveInfo.message;
+                            document.getElementById('nodeco-warning').style.display = 'block';
+                        } else {
+                            document.getElementById('rnt-result').textContent = repetitiveInfo.residualNitrogenTime + ' minutes';
+                            document.getElementById('andl-result').textContent = repetitiveInfo.adjustedNoDecoLimit + ' minutes';
+                            document.getElementById('nodeco-warning').style.display = 'none';
+                            
+                            // If we have both a selected pressure group and a target pressure group,
+                            // calculate the minimum surface interval
+                            if (diveState.selectedPressureGroup && diveState.targetPressureGroup) {
+                                displayMinimumSurfaceInterval();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error getting repetitive dive info:', error);
+                        document.getElementById('rnt-result').textContent = 'N/A';
+                        document.getElementById('andl-result').textContent = 'N/A';
+                        document.getElementById('nodeco-warning').textContent = 'Error calculating residual nitrogen time.';
+                        document.getElementById('nodeco-warning').style.display = 'block';
+                    }
+                }
+            });
+            
+            row.appendChild(depthCell);
+            
+            // Add cells for each pressure group
+            const groups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+            groups.forEach(group => {
+                const cell = document.createElement('td');
+                
+                // Get RNT and ANDL for this depth and group
+                if (navyTable3[depth] && navyTable3[depth][group]) {
+                    const [rnt, andl] = navyTable3[depth][group];
+                    
+                    if (rnt === 'N/L' || andl === 0) {
+                        cell.textContent = '-';
+                        cell.classList.add('cell-unavailable');
+                        cell.title = 'Not available';
+                    } else if (narcosisRisk) {
+                        cell.classList.add(`group-${group.toLowerCase()}`);
+                        cell.classList.add('narcosis-warning');
+                        cell.textContent = andl;
+                        cell.title = `Warning: Increased risk of nitrogen narcosis at 100ft and beyond. Adjusted No-Decompression Limit: ${andl} minutes.`;
+                    } else {
+                        cell.classList.add(`group-${group.toLowerCase()}`);
+                        cell.textContent = andl;
+                        cell.title = `Adjusted No-Decompression Limit (${andl} minutes): This is the maximum time you can stay at this depth for your repetitive dive.`;
+                        
+                        // Make the cell clickable to select as target pressure group
+                        cell.classList.add('clickable');
+                        cell.addEventListener('click', function() {
+                            // Set the target pressure group
+                            diveState.targetPressureGroup = group;
+                            diveState.targetDepth = depth;
+                            
+                            // Clear previous cell highlights in Table 3
+                            document.querySelectorAll('#table3 td.target-highlighted').forEach(el => {
+                                el.classList.remove('target-highlighted');
+                            });
+                            
+                            // Clear any target highlights in Table 2
+                            document.querySelectorAll('#table2 td.target-highlighted').forEach(el => {
+                                el.classList.remove('target-highlighted');
+                            });
+                            
+                            // Highlight this cell as the target
+                            cell.classList.add('target-highlighted');
+                            
+                            // If we have both a selected pressure group and a target pressure group,
+                            // calculate the minimum surface interval and highlight it in Table 2
+                            if (diveState.selectedPressureGroup && diveState.targetPressureGroup) {
+                                displayMinimumSurfaceInterval();
+                                
+                                // Highlight the corresponding cell in Table 2
+                                highlightSurfaceIntervalInTable2(diveState.selectedPressureGroup, diveState.targetPressureGroup);
+                            }
+                        });
+                    }
+                } else {
+                    cell.textContent = '-';
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            tbody.appendChild(row);
+        });
+    }
 }
